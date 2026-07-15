@@ -199,7 +199,17 @@
     <label style="font-size:.78rem; color:var(--sub); display:block; margin:14px 0 4px;">Correo</label>
     <input type="email" id="authEmail" placeholder="tucorreo@ejemplo.com" style="width:100%;" autocomplete="email">
     <label style="font-size:.78rem; color:var(--sub); display:block; margin:10px 0 4px;">Contraseña</label>
-    <input type="password" id="authPassword" placeholder="Mínimo 6 caracteres" style="width:100%;" autocomplete="current-password">
+    <div style="position:relative;">
+      <input type="password" id="authPassword" placeholder="Mínimo 6 caracteres" style="width:100%; padding-right:44px;" autocomplete="current-password">
+      <button type="button" id="authVerPasswordBtn" title="Mostrar/ocultar contraseña" style="position:absolute; right:2px; top:2px; bottom:2px; width:38px; background:none; border:none; color:var(--sub); cursor:pointer; padding:0; font-size:1rem;">👁️</button>
+    </div>
+    <div id="authConfirmWrap" style="display:none;">
+      <label style="font-size:.78rem; color:var(--sub); display:block; margin:10px 0 4px;">Confirmar contraseña</label>
+      <div style="position:relative;">
+        <input type="password" id="authPasswordConfirm" placeholder="Escribe la misma contraseña" style="width:100%; padding-right:44px;" autocomplete="new-password">
+        <button type="button" id="authVerPasswordConfirmBtn" title="Mostrar/ocultar contraseña" style="position:absolute; right:2px; top:2px; bottom:2px; width:38px; background:none; border:none; color:var(--sub); cursor:pointer; padding:0; font-size:1rem;">👁️</button>
+      </div>
+    </div>
     <div class="note" id="authError" style="color:var(--danger); display:none; margin-top:8px;"></div>
     <button id="authSubmitBtn" style="width:100%; margin-top:14px; padding:10px 14px;">Iniciar sesión</button>
     <button id="authToggleBtn" style="width:100%; margin-top:8px; padding:9px 14px; background:var(--card2); color:var(--text); border:1px solid var(--border);">¿No tienes cuenta? Crear una</button>
@@ -2943,6 +2953,7 @@ async function cerrarSesion(){
   const authOlvideBtn = document.getElementById('authOlvideBtn');
   const authSinCuentaBtn = document.getElementById('authSinCuentaBtn');
   const authError = document.getElementById('authError');
+  const authConfirmWrap = document.getElementById('authConfirmWrap');
 
   function mostrarErrorAuth(msg, ok){
     authError.style.color = ok ? 'var(--ok)' : 'var(--danger)';
@@ -2950,11 +2961,28 @@ async function cerrarSesion(){
     authError.style.display = 'block';
   }
 
+  function wireVerPassword(btnId, inputId){
+    const btn = document.getElementById(btnId);
+    const inp = document.getElementById(inputId);
+    btn.addEventListener('click', ()=>{
+      const oculto = inp.type === 'password';
+      inp.type = oculto ? 'text' : 'password';
+      btn.textContent = oculto ? '🙈' : '👁️';
+    });
+  }
+  wireVerPassword('authVerPasswordBtn', 'authPassword');
+  wireVerPassword('authVerPasswordConfirmBtn', 'authPasswordConfirm');
+
   authSubmitBtn.addEventListener('click', async ()=>{
     const email = document.getElementById('authEmail').value.trim();
     const pass = document.getElementById('authPassword').value;
+    const passConfirm = document.getElementById('authPasswordConfirm').value;
     authError.style.display = 'none';
     if(!email || !pass){ mostrarErrorAuth('Completa correo y contraseña.'); return; }
+    if(authModoRegistro){
+      if(pass.length < 6){ mostrarErrorAuth('La contraseña debe tener al menos 6 caracteres.'); return; }
+      if(pass !== passConfirm){ mostrarErrorAuth('Las contraseñas no coinciden.'); return; }
+    }
     if(!FIREBASE_OK){ mostrarErrorAuth('No se pudo conectar con el servicio de cuentas. Revisa tu conexión.'); return; }
     authSubmitBtn.disabled = true;
     try{
@@ -2974,6 +3002,8 @@ async function cerrarSesion(){
   authToggleBtn.addEventListener('click', ()=>{
     authModoRegistro = !authModoRegistro;
     authError.style.display = 'none';
+    document.getElementById('authPasswordConfirm').value = '';
+    authConfirmWrap.style.display = authModoRegistro ? 'block' : 'none';
     document.getElementById('authTitle').textContent = authModoRegistro ? 'Crear cuenta' : 'Iniciar sesión';
     document.getElementById('authSub').textContent = authModoRegistro
       ? 'Crea tu cuenta para guardar tus datos y verlos desde cualquier dispositivo.'
