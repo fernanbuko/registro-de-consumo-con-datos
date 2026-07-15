@@ -315,6 +315,25 @@ async function storageDelete(key){
     try{ localStorage.removeItem(key); }catch(e){}
   }
 }
+// Borra muchas claves a la vez en UNA sola llamada a la nube (mucho más rápido que
+// llamar storageDelete una por una — cada llamada individual implica ida y vuelta
+// por internet, y borrar un perfil completo puede ser ~50 claves).
+async function storageDeleteMuchos(keys){
+  if(keys.length === 0) return;
+  if(FIREBASE_UID){
+    keys.forEach(k => delete FIREBASE_DATOS[k]);
+    try{
+      const updates = {};
+      keys.forEach(k => { updates['datos.'+k] = firebase.firestore.FieldValue.delete(); });
+      await firebase.firestore().collection('usuarios').doc(FIREBASE_UID).update(updates);
+    }catch(e){
+      if(e && e.code !== 'not-found'){ console.error('Error borrando en la nube:', e); avisarErrorFirebase(e); }
+    }
+    return;
+  }
+  // Local (Claude storage o localStorage): ya son instantáneos, se borran en paralelo.
+  await Promise.all(keys.map(k => storageDelete(k)));
+}
 
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
@@ -617,17 +636,17 @@ async function borrarDatosDePerfil(id){
     if(!v && id === 'default') v = await storageGet('years');
     yearsDelPerfil = v ? JSON.parse(v) : [BASE_YEAR];
   }catch(e){}
+  const claves = [];
   for(const year of yearsDelPerfil){
     for(const mes of MESES){
-      await storageDelete(`lecturas:${id}:${year}:${mes}`);
-      await storageDelete(`factura_manual:${id}:${year}:${mes}`);
-      await storageDelete(`subsidio_extra:${id}:${year}:${mes}`);
-      await storageDelete(`meta_ahorro:${id}:${year}:${mes}`);
+      claves.push(`lecturas:${id}:${year}:${mes}`);
+      claves.push(`factura_manual:${id}:${year}:${mes}`);
+      claves.push(`subsidio_extra:${id}:${year}:${mes}`);
+      claves.push(`meta_ahorro:${id}:${year}:${mes}`);
     }
   }
-  await storageDelete(`years:${id}`);
-  await storageDelete(`future_overrides:${id}`);
-  await storageDelete(`es_tercera_edad:${id}`);
+  claves.push(`years:${id}`, `future_overrides:${id}`, `es_tercera_edad:${id}`);
+  await storageDeleteMuchos(claves);
 }
 
 async function borrarPerfil(id){
@@ -1512,13 +1531,15 @@ function renderYearTabs(){
 
 async function deleteYear(year){
   if(!confirm(`¿Borrar todo el año ${year}? Se perderán todas las lecturas ingresadas en sus 12 meses. Esta acción no se puede deshacer.`)) return;
+  const claves = [];
   for(const mes of MESES){
-    await storageDelete(`lecturas:${PERFIL_ACTIVO}:${year}:${mes}`);
-    await storageDelete(`factura_manual:${PERFIL_ACTIVO}:${year}:${mes}`);
-    await storageDelete(`subsidio_extra:${PERFIL_ACTIVO}:${year}:${mes}`);
-    await storageDelete(`meta_ahorro:${PERFIL_ACTIVO}:${year}:${mes}`);
+    claves.push(`lecturas:${PERFIL_ACTIVO}:${year}:${mes}`);
+    claves.push(`factura_manual:${PERFIL_ACTIVO}:${year}:${mes}`);
+    claves.push(`subsidio_extra:${PERFIL_ACTIVO}:${year}:${mes}`);
+    claves.push(`meta_ahorro:${PERFIL_ACTIVO}:${year}:${mes}`);
     delete FUTURE_OVERRIDES[`${year}:${mes}`];
   }
+  await storageDeleteMuchos(claves);
   await saveOverrides();
   YEARS = YEARS.filter(y2 => y2 !== year);
   await saveYears();
