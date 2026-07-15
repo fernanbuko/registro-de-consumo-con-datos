@@ -261,6 +261,16 @@
 const HAS_CLAUDE_STORAGE = (typeof window !== 'undefined' && !!window.storage);
 let FIREBASE_UID = null;      // se llena al iniciar sesión
 let FIREBASE_DATOS = {};      // copia en memoria de los datos guardados en la nube de este usuario
+let avisoErrorFirebaseMostrado = false;
+function avisarErrorFirebase(e){
+  if(avisoErrorFirebaseMostrado) return; // solo una vez por sesión, para no saturar de alertas
+  avisoErrorFirebaseMostrado = true;
+  const esPermiso = e && (e.code === 'permission-denied' || (e.message && e.message.toLowerCase().includes('permission')));
+  const msg = esPermiso
+    ? 'No se pudo guardar en la nube: permiso denegado. Es probable que las reglas de seguridad de Firestore no estén publicadas correctamente — revísalas en la consola de Firebase (Firestore Database → Rules).'
+    : 'No se pudo guardar en la nube. Revisa tu conexión a internet e intenta de nuevo.';
+  try{ alert(msg); }catch(err){}
+}
 
 async function storageGet(key){
   if(FIREBASE_UID){
@@ -277,7 +287,7 @@ async function storageSet(key, value){
     FIREBASE_DATOS[key] = value;
     try{
       await firebase.firestore().collection('usuarios').doc(FIREBASE_UID).set({datos:{[key]:value}}, {merge:true});
-    }catch(e){ console.error('Error guardando en la nube:', e); }
+    }catch(e){ console.error('Error guardando en la nube:', e); avisarErrorFirebase(e); }
     return;
   }
   if(HAS_CLAUDE_STORAGE){
@@ -292,7 +302,11 @@ async function storageDelete(key){
     try{
       await firebase.firestore().collection('usuarios').doc(FIREBASE_UID)
         .update({['datos.'+key]: firebase.firestore.FieldValue.delete()});
-    }catch(e){ /* si el documento aún no existía, no pasa nada */ }
+    }catch(e){
+      // Puede fallar porque el documento aún no existía (normal, se ignora) o por
+      // permisos (ej. reglas de seguridad no publicadas) — esto último sí se avisa.
+      if(e && e.code !== 'not-found'){ console.error('Error borrando en la nube:', e); avisarErrorFirebase(e); }
+    }
     return;
   }
   if(HAS_CLAUDE_STORAGE){
