@@ -1,0 +1,3048 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro de Consumo Eléctrico</title>
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%20%22Registro%20de%20Consumo%20El%C3%A9ctrico%22%2C%20%22short_name%22%3A%20%22Registro%20El%C3%A9ctrico%22%2C%20%22description%22%3A%20%22App%20para%20llevar%20el%20registro%20de%20tu%20consumo%20el%C3%A9ctrico%22%2C%20%22start_url%22%3A%20%22./%22%2C%20%22scope%22%3A%20%22./%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22orientation%22%3A%20%22portrait%22%2C%20%22background_color%22%3A%20%22%230f1720%22%2C%20%22theme_color%22%3A%20%22%230f1720%22%2C%20%22icons%22%3A%20%5B%7B%22src%22%3A%20%22data%3Aimage/svg%2Bxml%2C%253Csvg%2520xmlns%253D%2522http%253A//www.w3.org/2000/svg%2522%2520viewBox%253D%25220%25200%2520200%2520200%2522%253E%253Crect%2520width%253D%2522200%2522%2520height%253D%2522200%2522%2520rx%253D%252240%2522%2520fill%253D%2522%25230f1720%2522/%253E%253Crect%2520x%253D%25224%2522%2520y%253D%25224%2522%2520width%253D%2522192%2522%2520height%253D%2522192%2522%2520rx%253D%252236%2522%2520fill%253D%2522none%2522%2520stroke%253D%2522%25232a3849%2522%2520stroke-width%253D%25224%2522/%253E%253Ctext%2520x%253D%2522100%2522%2520y%253D%2522145%2522%2520font-size%253D%2522120%2522%2520text-anchor%253D%2522middle%2522%2520font-family%253D%2522Arial%252C%2520sans-serif%2522%253E%25E2%259A%25A1%253C/text%253E%253C/svg%253E%22%2C%20%22sizes%22%3A%20%22192x192%22%2C%20%22type%22%3A%20%22image/svg%2Bxml%22%2C%20%22purpose%22%3A%20%22any%22%7D%2C%20%7B%22src%22%3A%20%22data%3Aimage/svg%2Bxml%2C%253Csvg%2520xmlns%253D%2522http%253A//www.w3.org/2000/svg%2522%2520viewBox%253D%25220%25200%2520200%2520200%2522%253E%253Crect%2520width%253D%2522200%2522%2520height%253D%2522200%2522%2520rx%253D%252240%2522%2520fill%253D%2522%25230f1720%2522/%253E%253Crect%2520x%253D%25224%2522%2520y%253D%25224%2522%2520width%253D%2522192%2522%2520height%253D%2522192%2522%2520rx%253D%252236%2522%2520fill%253D%2522none%2522%2520stroke%253D%2522%25232a3849%2522%2520stroke-width%253D%25224%2522/%253E%253Ctext%2520x%253D%2522100%2522%2520y%253D%2522145%2522%2520font-size%253D%2522120%2522%2520text-anchor%253D%2522middle%2522%2520font-family%253D%2522Arial%252C%2520sans-serif%2522%253E%25E2%259A%25A1%253C/text%253E%253C/svg%253E%22%2C%20%22sizes%22%3A%20%22512x512%22%2C%20%22type%22%3A%20%22image/svg%2Bxml%22%2C%20%22purpose%22%3A%20%22any%22%7D%2C%20%7B%22src%22%3A%20%22data%3Aimage/svg%2Bxml%2C%253Csvg%2520xmlns%253D%2522http%253A//www.w3.org/2000/svg%2522%2520viewBox%253D%25220%25200%2520200%2520200%2522%253E%253Crect%2520width%253D%2522200%2522%2520height%253D%2522200%2522%2520rx%253D%252240%2522%2520fill%253D%2522%25230f1720%2522/%253E%253Crect%2520x%253D%25224%2522%2520y%253D%25224%2522%2520width%253D%2522192%2522%2520height%253D%2522192%2522%2520rx%253D%252236%2522%2520fill%253D%2522none%2522%2520stroke%253D%2522%25232a3849%2522%2520stroke-width%253D%25224%2522/%253E%253Ctext%2520x%253D%2522100%2522%2520y%253D%2522145%2522%2520font-size%253D%2522120%2522%2520text-anchor%253D%2522middle%2522%2520font-family%253D%2522Arial%252C%2520sans-serif%2522%253E%25E2%259A%25A1%253C/text%253E%253C/svg%253E%22%2C%20%22sizes%22%3A%20%22192x192%22%2C%20%22type%22%3A%20%22image/svg%2Bxml%22%2C%20%22purpose%22%3A%20%22maskable%22%7D%5D%7D">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20200%20200%22%3E%3Crect%20width%3D%22200%22%20height%3D%22200%22%20rx%3D%2240%22%20fill%3D%22%230f1720%22/%3E%3Crect%20x%3D%224%22%20y%3D%224%22%20width%3D%22192%22%20height%3D%22192%22%20rx%3D%2236%22%20fill%3D%22none%22%20stroke%3D%22%232a3849%22%20stroke-width%3D%224%22/%3E%3Ctext%20x%3D%22100%22%20y%3D%22145%22%20font-size%3D%22120%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20200%20200%22%3E%3Crect%20width%3D%22200%22%20height%3D%22200%22%20rx%3D%2240%22%20fill%3D%22%230f1720%22/%3E%3Crect%20x%3D%224%22%20y%3D%224%22%20width%3D%22192%22%20height%3D%22192%22%20rx%3D%2236%22%20fill%3D%22none%22%20stroke%3D%22%232a3849%22%20stroke-width%3D%224%22/%3E%3Ctext%20x%3D%22100%22%20y%3D%22145%22%20font-size%3D%22120%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#0f1720">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Registro Eléctrico">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAEMawDfNvlz7e0i3JPsDq9eIUVxhdi3o8",
+    authDomain: "registro-consumo-electrico.firebaseapp.com",
+    projectId: "registro-consumo-electrico",
+    storageBucket: "registro-consumo-electrico.firebasestorage.app",
+    messagingSenderId: "183118051451",
+    appId: "1:183118051451:web:04d0785e7ed1b423380ade"
+  };
+  let FIREBASE_OK = false;
+  try{
+    firebase.initializeApp(firebaseConfig);
+    FIREBASE_OK = true;
+  }catch(e){ console.error('No se pudo inicializar Firebase:', e); }
+</script>
+<style>
+  :root{
+    --bg:#0f1720; --card:#182230; --card2:#1f2b3a; --accent:#4f8ff0; --accent2:#7bd88f;
+    --text:#e8edf3; --sub:#93a3b8; --danger:#f0716f; --ok:#5fd39a; --border:#2a3849; --blue:#7cb0ff;
+  }
+  body.light{
+    --bg:#f4f6f9; --card:#ffffff; --card2:#eef1f6; --accent:#2f6fe0; --accent2:#2f9e63;
+    --text:#1a2430; --sub:#5a6b80; --danger:#d5473f; --ok:#2f9e63; --border:#d7dee6; --blue:#2f6fe0;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:'Segoe UI', Arial, sans-serif; background:var(--bg); color:var(--text); padding:14px 14px 40px;}
+  .wrap{max-width:820px; margin:0 auto;}
+  h1{font-size:1.25rem; margin:0 0 2px 0;}
+  .sub{color:var(--sub); font-size:.8rem; margin-bottom:14px;}
+  .tabs{display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; margin-bottom:14px; -webkit-overflow-scrolling:touch;}
+  .tabs button{
+    flex:0 0 auto; padding:8px 14px; border-radius:20px; border:1px solid var(--border);
+    background:var(--card2); color:var(--sub); font-size:.82rem; cursor:pointer; white-space:nowrap;
+  }
+  .tabs button.active{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .tabs button.addyear{background:transparent; border:1px dashed var(--accent2); color:var(--accent2);}
+  .tabs button.delbtn{padding:4px 8px; border-radius:50%; background:var(--card2); color:var(--danger); font-size:.7rem; border:1px solid var(--border);}
+  .card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:14px;}
+  .card h2{font-size:1rem; margin:0 0 10px 0; color:var(--blue);}
+  .card h3{font-size:.85rem; margin:14px 0 8px 0; color:var(--sub); text-transform:uppercase; letter-spacing:.03em;}
+  table{width:100%; border-collapse:collapse; font-size:.82rem;}
+  th, td{text-align:left; padding:6px 5px; border-bottom:1px solid var(--border);}
+  th{color:var(--sub); font-weight:600; font-size:.72rem;}
+  input[type=number], input[type=time], input[type=date]{
+    width:100px; padding:6px 8px; border-radius:6px; border:1px solid var(--border);
+    background:var(--card2); color:var(--text); font-size:.85rem;
+  }
+  input[type=date]{width:140px;}
+  input[type=time]::-webkit-calendar-picker-indicator,
+  input[type=date]::-webkit-calendar-picker-indicator{
+    filter:invert(.8);
+  }
+  input.hasvalue{border-color:var(--blue); color:var(--blue);}
+  select{
+    width:100%; padding:8px 10px; border-radius:6px; border:1px solid var(--border);
+    background:var(--card2); color:var(--text); font-size:.9rem; cursor:pointer;
+  }
+  select option{background:var(--card2); color:var(--text);}
+  button{
+    font-family:inherit; background:var(--accent); color:#fff; border:1px solid var(--accent);
+    border-radius:8px; padding:8px 14px; cursor:pointer; font-size:.85rem;
+  }
+  .summary-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:10px 0;}
+  .stat{background:var(--card2); border-radius:10px; padding:10px; text-align:center;}
+  .stat .num{font-size:1.15rem; font-weight:700;}
+  .stat .lbl{font-size:.68rem; color:var(--sub); margin-top:2px;}
+  .estado{padding:9px 12px; border-radius:8px; font-weight:600; text-align:center; font-size:.85rem; margin-top:8px;}
+  .estado.ok{background:rgba(95,211,154,.15); color:var(--ok);}
+  .estado.pend{background:rgba(240,113,111,.12); color:#e8b169;}
+  .kv{display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px dashed var(--border); font-size:.85rem;}
+  .kv .v{font-weight:600;}
+  .kv .v.blue{color:var(--blue);}
+  .kv .v.green{color:var(--accent2);}
+  .totalrow{border-top:2px solid var(--border); margin-top:6px; padding-top:8px; font-weight:700;}
+  .badge{display:inline-block; font-size:.68rem; padding:2px 8px; border-radius:20px; background:var(--card2); color:var(--sub);}
+  .note{font-size:.72rem; color:var(--sub); margin-top:6px; line-height:1.4;}
+  canvas{max-height:200px;}
+  .daysbox{border:1px solid var(--border); border-radius:8px; padding:4px 8px;}
+  .cols2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:600px){ .cols2{grid-template-columns:1fr;} }
+  .calgrid{display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin-top:8px;}
+  .calhead{font-size:.65rem; color:var(--sub); text-align:center; padding-bottom:2px;}
+  .calcell{border-radius:6px; padding:6px 2px; text-align:center; font-size:.68rem; min-height:44px; display:flex; flex-direction:column; justify-content:center; border:1px solid var(--border);}
+  .calcell .d{font-weight:700; font-size:.78rem;}
+  .calcell .k{font-size:.62rem; margin-top:2px; opacity:.85;}
+  .calcell.empty{border:none;}
+
+  /* --- Ajustes para celular --- */
+  @media (max-width:480px){
+    body{padding:10px 10px 32px; font-size:.95rem;}
+    h1{font-size:1.08rem;}
+    .sub{font-size:.72rem;}
+    .card{padding:12px; border-radius:12px; margin-bottom:10px;}
+    .card h2{font-size:.92rem;}
+    .tabs{gap:5px; margin-bottom:10px;}
+    .tabs button{padding:9px 12px; font-size:.78rem; min-height:38px;}
+    table{font-size:.74rem;}
+    th, td{padding:7px 3px;}
+    .summary-grid{gap:8px;}
+    .stat{padding:8px 6px;}
+    .stat .num{font-size:1.02rem;}
+    .stat .lbl{font-size:.6rem;}
+    .calcell{min-height:36px; font-size:.6rem;}
+    .calcell .d{font-size:.7rem;}
+    button{min-height:38px;}
+    /* la tabla de lecturas diarias es la más ancha de toda la app: en celular
+       se quita la columna "Día" (ya la puedes ver si lo necesitas en el calendario)
+       y se achican los campos, para que quepan las 4 columnas sin scroll lateral. */
+    .daysbox input[type=number]{width:66px; padding:5px 3px; font-size:16px;}
+    .daysbox input[type=time]{width:76px; padding:5px 2px; font-size:.72rem;}
+    .daysbox th, .daysbox td{padding:6px 2px; font-size:.7rem;}
+    /* En celular, las filas "etiqueta: valor" (Nombre, Dirección, etc.) se acomodan
+       una debajo de otra en vez de lado a lado, para que valores largos (como una
+       dirección) no queden pegados a su etiqueta. */
+    .kv{flex-direction:column; align-items:flex-start; gap:2px;}
+    .kv .v{text-align:left;}
+  }
+  /* Los campos de fecha/hora/número deben medir al menos 16px de letra en celular,
+     si no, Safari/Chrome en iOS hacen zoom automático al tocar el campo. */
+  input[type=number], input[type=time], input[type=date], select{
+    font-size:max(16px, .85rem);
+  }
+
+  /* --- Pantalla de bienvenida --- */
+  #landingScreen{
+    background:
+      radial-gradient(circle at 50% 0%, rgba(79,143,240,.14), transparent 55%),
+      var(--bg);
+  }
+  .landing-card{
+    background:var(--card); border:1px solid var(--border); border-radius:18px;
+    padding:32px 28px; box-shadow:0 20px 50px -20px rgba(0,0,0,.6);
+  }
+  .landing-bolt{
+    width:64px; height:64px; margin:0 auto 14px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-size:1.8rem;
+    background:radial-gradient(circle, rgba(79,143,240,.25), rgba(79,143,240,.05));
+    border:1px solid var(--border);
+  }
+  .landing-title{font-size:1.35rem; font-weight:700; margin:0 0 4px;}
+  .landing-sub{color:var(--sub); font-size:.85rem; margin-bottom:26px; line-height:1.5;}
+  .landing-section-label{
+    font-size:.68rem; color:var(--sub); text-transform:uppercase; letter-spacing:.06em;
+    font-weight:700; margin:0 0 8px; text-align:left;
+  }
+  .profile-card{
+    display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:12px;
+    border:1px solid var(--border); background:var(--card2); cursor:pointer;
+    transition:border-color .15s ease, transform .15s ease, background .15s ease;
+    text-align:left;
+  }
+  .profile-card:hover{border-color:var(--accent); transform:translateY(-1px); background:#233247;}
+  .profile-card.active-profile{border-color:var(--accent);}
+  .profile-card .avatar{
+    width:38px; height:38px; border-radius:50%; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center; font-size:1.1rem;
+    background:var(--card); border:1px solid var(--border);
+  }
+  .profile-card .info{flex:1; min-width:0;}
+  .profile-card .info .name{font-weight:700; font-size:.92rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .profile-card .info .meta{font-size:.72rem; color:var(--sub); margin-top:2px;}
+  .profile-card .chev{color:var(--sub); font-size:1rem; flex:0 0 auto;}
+  .profile-card-new{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:14px 16px; border-radius:12px; border:1px dashed var(--accent2); color:var(--accent2);
+    cursor:pointer; font-weight:700; font-size:.85rem;
+    transition:background .15s ease;
+  }
+  .profile-card-new:hover{background:rgba(52,211,153,.08);}
+</style>
+</head>
+<body>
+<div id="authScreen" style="display:flex; min-height:100vh; align-items:center; justify-content:center; padding:20px;">
+  <div style="max-width:380px; width:100%;" class="landing-card">
+    <div style="text-align:center;">
+      <div class="landing-bolt">⚡</div>
+      <h1 class="landing-title" id="authTitle">Iniciar sesión</h1>
+      <div class="landing-sub" id="authSub">Inicia sesión para ver tus datos desde cualquier dispositivo.</div>
+    </div>
+    <label style="font-size:.78rem; color:var(--sub); display:block; margin:14px 0 4px;">Correo</label>
+    <input type="email" id="authEmail" placeholder="tucorreo@ejemplo.com" style="width:100%;" autocomplete="email">
+    <label style="font-size:.78rem; color:var(--sub); display:block; margin:10px 0 4px;">Contraseña</label>
+    <input type="password" id="authPassword" placeholder="Mínimo 6 caracteres" style="width:100%;" autocomplete="current-password">
+    <div class="note" id="authError" style="color:var(--danger); display:none; margin-top:8px;"></div>
+    <button id="authSubmitBtn" style="width:100%; margin-top:14px; padding:10px 14px;">Iniciar sesión</button>
+    <button id="authToggleBtn" style="width:100%; margin-top:8px; padding:9px 14px; background:var(--card2); color:var(--text); border:1px solid var(--border);">¿No tienes cuenta? Crear una</button>
+    <button id="authOlvideBtn" style="width:100%; margin-top:8px; padding:8px 14px; background:none; color:var(--sub); border:none; text-decoration:underline; font-size:.82rem;">¿Olvidaste tu contraseña?</button>
+    <button id="authSinCuentaBtn" style="width:100%; margin-top:16px; padding:9px 14px; background:none; color:var(--sub); border:1px dashed var(--border);">Usar sin cuenta (solo en este dispositivo)</button>
+  </div>
+</div>
+<div id="landingScreen" style="display:none; min-height:100vh; align-items:center; justify-content:center; padding:20px;">
+  <div style="max-width:420px; width:100%;" class="landing-card">
+    <div style="text-align:center;">
+      <div class="landing-bolt">⚡</div>
+      <h1 id="landingTitle" class="landing-title"></h1>
+      <div id="landingSub" class="landing-sub"></div>
+    </div>
+    <div class="landing-section-label" id="landingListLabel"></div>
+    <div id="landingProfileList" style="display:flex; flex-direction:column; gap:10px;"></div>
+    <button id="importarLandingBtn" style="width:100%; margin-top:16px; padding:10px 14px; background:var(--card2); color:var(--text); border:1px solid var(--border);">📥 Importar respaldo (JSON)</button>
+    <input type="file" id="importarLandingFile" accept="application/json" style="display:none;">
+    <button id="compartirAppBtn" style="width:100%; margin-top:8px; padding:10px 14px; background:var(--card2); color:var(--text); border:1px solid var(--border);">📤 Compartir esta app</button>
+  </div>
+</div>
+<div class="wrap" id="mainWrap" style="display:none;">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+    <div style="display:flex; align-items:flex-start; gap:10px;">
+      <button id="menuHamburgerBtn" title="Menú" style="width:auto; flex:0 0 auto; padding:8px 10px; font-size:1.2rem; line-height:1; background:var(--card2); color:var(--text); border:1px solid var(--border); border-radius:8px; cursor:pointer;">☰</button>
+      <div>
+        <h1 id="appTitle" style="cursor:pointer;">⚡ Registro de Consumo Eléctrico</h1>
+      </div>
+    </div>
+    <button id="searchIconBtn" title="Buscar" style="width:auto; flex:0 0 auto; padding:8px 10px; font-size:1.1rem; line-height:1; background:var(--card2); color:var(--text); border:1px solid var(--border); border-radius:8px; cursor:pointer;">🔍</button>
+  </div>
+  <div style="display:flex; align-items:center; gap:8px; margin-top:14px; margin-bottom:14px; flex-wrap:wrap;">
+    <button id="generarPdfBtn" title="Si estás viendo un mes, genera el reporte solo de ese mes. Si estás en Resumen Anual o Tarifa Eléctrica, genera el reporte completo del año." style="width:auto; padding:7px 12px; font-size:.78rem; background:var(--card2); color:var(--text); border:1px solid var(--border);">🖨️ Generar reporte PDF</button>
+  </div>
+  <div class="tabs" id="yearTabs" style="display:none;"></div>
+  <div class="tabs" id="specialTabs" style="display:none;"></div>
+  <div class="tabs" id="tabs" style="display:none;"></div>
+  <div id="content"></div>
+
+  <div id="drawerOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100;"></div>
+  <div id="drawerPanel" style="display:none; position:fixed; top:0; left:0; bottom:0; width:78%; max-width:300px; background:var(--card); border-right:1px solid var(--border); z-index:101; box-shadow:4px 0 18px rgba(0,0,0,.4); flex-direction:column;">
+    <div id="drawerBody" style="flex:1; overflow-y:auto; padding:14px;"></div>
+    <div id="drawerFooter" style="border-top:1px solid var(--border); padding:10px 14px; display:flex; align-items:center;"></div>
+  </div>
+
+  <div id="searchOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100;"></div>
+  <div id="searchPanel" style="display:none; position:fixed; top:0; left:0; right:0; max-height:80vh; background:var(--card); border-bottom:1px solid var(--border); z-index:101; box-shadow:0 10px 30px rgba(0,0,0,.4); flex-direction:column;">
+    <div style="padding:14px;">
+      <input type="text" id="searchInput" placeholder="🔍 Buscar (ej. Junio 2026)" style="width:100%;">
+    </div>
+    <div id="searchResults" style="flex:1; overflow-y:auto; padding:0 14px 14px;"></div>
+  </div>
+</div>
+
+<script>
+// Capa de almacenamiento: usa window.storage (Claude.ai) cuando está disponible,
+// y si no (por ejemplo al abrir el .html descargado directo en el navegador),
+// guarda en localStorage del propio navegador para que los datos no se borren.
+const HAS_CLAUDE_STORAGE = (typeof window !== 'undefined' && !!window.storage);
+let FIREBASE_UID = null;      // se llena al iniciar sesión
+let FIREBASE_DATOS = {};      // copia en memoria de los datos guardados en la nube de este usuario
+
+async function storageGet(key){
+  if(FIREBASE_UID){
+    return (FIREBASE_DATOS && FIREBASE_DATOS[key] !== undefined) ? FIREBASE_DATOS[key] : null;
+  }
+  if(HAS_CLAUDE_STORAGE){
+    try{ const r = await window.storage.get(key, false); return r ? r.value : null; }
+    catch(e){ return null; }
+  }
+  return localStorage.getItem(key);
+}
+async function storageSet(key, value){
+  if(FIREBASE_UID){
+    FIREBASE_DATOS[key] = value;
+    try{
+      await firebase.firestore().collection('usuarios').doc(FIREBASE_UID).set({datos:{[key]:value}}, {merge:true});
+    }catch(e){ console.error('Error guardando en la nube:', e); }
+    return;
+  }
+  if(HAS_CLAUDE_STORAGE){
+    try{ await window.storage.set(key, value, false); }catch(e){ console.error(e); }
+  } else {
+    try{ localStorage.setItem(key, value); }catch(e){ console.error(e); }
+  }
+}
+async function storageDelete(key){
+  if(FIREBASE_UID){
+    delete FIREBASE_DATOS[key];
+    try{
+      await firebase.firestore().collection('usuarios').doc(FIREBASE_UID)
+        .update({['datos.'+key]: firebase.firestore.FieldValue.delete()});
+    }catch(e){ /* si el documento aún no existía, no pasa nada */ }
+    return;
+  }
+  if(HAS_CLAUDE_STORAGE){
+    try{ await window.storage.delete(key, false); }catch(e){}
+  } else {
+    try{ localStorage.removeItem(key); }catch(e){}
+  }
+}
+
+const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+const DATA = {
+ "Enero":  {desde:"2025-12-20", hasta:"2026-01-20", lect_ini:8598, lect_fin:9372, consumo:774,
+    valor_consumo:78.91, comercial:1.41, subsidio_adulto:6.41, subsidio_cruzado:8.03, compensacion:0,
+    alumbrado:9.01, bomberos:2.41, total_factura:93.36},
+ "Febrero":{desde:"2026-01-21", hasta:"2026-02-21", lect_ini:9372, lect_fin:10060, consumo:688,
+    valor_consumo:69.44, comercial:1.41, subsidio_adulto:6.41, subsidio_cruzado:7.09, compensacion:0,
+    alumbrado:7.68, bomberos:2.41, total_factura:81.62},
+ "Marzo":  {desde:"2026-02-22", hasta:"2026-03-25", lect_ini:10060, lect_fin:10886, consumo:826,
+    valor_consumo:84.67, comercial:1.41, subsidio_adulto:6.41, subsidio_cruzado:8.61, compensacion:0,
+    alumbrado:9.85, bomberos:2.41, total_factura:100.54},
+ "Abril":  {desde:"2026-03-26", hasta:"2026-04-23", lect_ini:10886, lect_fin:11837, consumo:951,
+    valor_consumo:98.54, comercial:1.41, subsidio_adulto:6.41, subsidio_cruzado:10.00, compensacion:0,
+    alumbrado:11.88, bomberos:2.41, total_factura:117.83},
+ "Mayo":   {desde:"2026-04-24", hasta:"2026-05-22", lect_ini:11837, lect_fin:12688, consumo:851,
+    valor_consumo:87.45, comercial:1.41, subsidio_adulto:6.41, subsidio_cruzado:8.89, compensacion:10.45,
+    alumbrado:10.26, bomberos:2.41, total_factura:93.56},
+ "Junio":  {desde:"2026-05-23", hasta:"2026-06-23", lect_ini:12688, lect_fin:13570, consumo:882,
+    valor_consumo:101.79, comercial:1.41, subsidio_adulto:6.41, subsidio_cruzado:10.32, compensacion:0,
+    alumbrado:11.33, bomberos:2.41, total_factura:120.85},
+};
+const money = n => n===null||n===undefined||isNaN(n) ? "-" : "$"+n.toFixed(2);
+let DATE_FORMAT = "dmy"; // dmy | mdy | iso
+async function loadDateFormat(){
+  try{
+    const v = await storageGet('date_format');
+    DATE_FORMAT = v ? v : "dmy";
+  }catch(e){ DATE_FORMAT = "dmy"; }
+}
+async function saveDateFormat(fmt){
+  DATE_FORMAT = fmt;
+  await storageSet('date_format', fmt);
+}
+function todayISO(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+const DIAS_CORTOS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+const DIAS_CORTOS_EN = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+function diaSemanaCorta(iso){
+  if(!iso) return "-";
+  const d = new Date(iso+"T00:00:00");
+  return (LANG==='en' ? DIAS_CORTOS_EN : DIAS_CORTOS)[d.getDay()];
+}
+function buildCalendarHTML(c, analisis){
+  const dias = LANG==='en' ? DIAS_CORTOS_EN : DIAS_CORTOS;
+  let html = `<div class="calgrid">` + dias.map(d=>`<div class="calhead">${d}</div>`).join("");
+  const firstDow = new Date(c.rows[0].fecha+"T00:00:00").getDay();
+  for(let i=0;i<firstDow;i++) html += `<div class="calcell empty"></div>`;
+  const promedio = analisis.promedio;
+  c.rows.forEach(r=>{
+    const dayNum = parseInt(r.fecha.slice(8,10));
+    let bg = 'var(--card2)', fg = 'var(--text)';
+    if(r.consumo === null){
+      bg = 'var(--card2)'; fg = 'var(--sub)';
+    } else if(promedio > 0){
+      const ratio = r.consumo / promedio;
+      if(ratio < 0.7){ bg = 'rgba(95,211,154,.28)'; }
+      else if(ratio > 1.3){ bg = 'rgba(240,113,111,.30)'; }
+      else { bg = 'rgba(124,176,255,.20)'; }
+    }
+    html += `<div class="calcell" style="background:${bg}; color:${fg};">
+      <div class="d">${dayNum}</div>
+      <div class="k">${r.consumo!==null ? r.consumo.toFixed(0)+' kWh' : '—'}</div>
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+const fmtDate = iso => {
+  if(!iso) return "-";
+  const [y,m,d] = iso.split("-");
+  if(DATE_FORMAT === "mdy") return `${m}/${d}/${y}`;
+  if(DATE_FORMAT === "iso") return `${y}-${m}-${d}`;
+  return `${d}/${m}/${y}`; // dmy (por defecto)
+};
+const DIAS_SEMANA = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+const diaSemana = iso => {
+  if(!iso) return "-";
+  const d = new Date(iso+"T00:00:00");
+  return (typeof LANG !== 'undefined' && LANG === 'en') ? DIAS_SEMANA_EN[d.getDay()] : DIAS_SEMANA[d.getDay()];
+};
+// Cada entrada puede ser un número simple (formato antiguo) o un objeto {valor, hora}
+const entryValor = entry => {
+  if(entry===undefined || entry===null) return null;
+  if(typeof entry === 'object') return (entry.valor===undefined ? null : entry.valor);
+  return entry;
+};
+const entryHora = entry => {
+  if(entry && typeof entry === 'object') return entry.hora || "";
+  return "";
+};
+const kwh = n => n===null||n===undefined||isNaN(n) ? "-" : n.toFixed(2)+" kWh";
+const rate = n => n===null||n===undefined||isNaN(n) ? "-" : "$"+n.toFixed(4);
+
+function dateRange(a,b){
+  const out=[]; let d=new Date(a+"T00:00:00"); const end=new Date(b+"T00:00:00");
+  while(d<=end){ out.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+  return out;
+}
+const FUTURE_CYCLE_LEN = 30;
+const BASE_YEAR = 2026;
+function getCycleStart(){
+  // El perfil "default" es la cuenta real con facturas de Ene-Jun ya cargadas,
+  // así que sus meses estimados siguen encadenados desde el fin de Junio real.
+  // Cualquier otro perfil (propiedad nueva) no tiene esas facturas, así que
+  // arranca su propio ciclo desde el 1 de enero del año base.
+  return PERFIL_ACTIVO === 'default' ? "2026-06-24" : `${BASE_YEAR}-01-01`;
+}
+
+function addDays(fecha, n){
+  const d = new Date(fecha+"T00:00:00");
+  d.setDate(d.getDate()+n);
+  return d.toISOString().slice(0,10);
+}
+
+// ---- Ajustes manuales de fecha de corte por mes (para cuando tu distribuidora factura
+// una cantidad de días distinta a la estimada). Se guardan y afectan a todos
+// los meses siguientes en cadena.
+let FUTURE_OVERRIDES = {};
+async function loadOverrides(){
+  try{
+    let v = await storageGet(`future_overrides:${PERFIL_ACTIVO}`);
+    if(!v && PERFIL_ACTIVO === 'default'){ v = await storageGet('future_overrides'); }
+    FUTURE_OVERRIDES = v ? JSON.parse(v) : {};
+  }catch(e){ FUTURE_OVERRIDES = {}; }
+}
+async function saveOverrides(){
+  await storageSet(`future_overrides:${PERFIL_ACTIVO}`, JSON.stringify(FUTURE_OVERRIDES));
+}
+async function setCutoffOverride(year, mes, desde, hasta){
+  const actual = FUTURE_OVERRIDES[`${year}:${mes}`] || {};
+  FUTURE_OVERRIDES[`${year}:${mes}`] = {
+    desde: desde !== undefined ? desde : actual.desde,
+    hasta: hasta !== undefined ? hasta : actual.hasta
+  };
+  await saveOverrides();
+  buildFutureRanges();
+}
+async function clearCutoffOverride(year, mes){
+  delete FUTURE_OVERRIDES[`${year}:${mes}`];
+  await saveOverrides();
+  buildFutureRanges();
+}
+
+// Secuencia ordenada de meses "estimados": para el perfil real, Julio-2026 en adelante
+// (Ene-Jun 2026 ya son facturas reales); para otros perfiles, los 12 meses desde Enero.
+function futureSequence(){
+  const seq = [];
+  const esDefault = PERFIL_ACTIVO === 'default';
+  const lastYear = Math.max(BASE_YEAR, ...YEARS) + 1; // +1 año de margen
+  for(let y = BASE_YEAR; y <= lastYear; y++){
+    const startIdx = (esDefault && y===BASE_YEAR) ? 6 : 0; // en 2026 el perfil real arranca en Julio (índice 6)
+    for(let mi = startIdx; mi < 12; mi++){
+      seq.push({year:y, mes:MESES[mi]});
+    }
+  }
+  return seq;
+}
+
+let FUTURE_RANGES_MAP = {};
+function buildFutureRanges(){
+  FUTURE_RANGES_MAP = {};
+  let cursor = getCycleStart();
+  futureSequence().forEach(({year, mes})=>{
+    const key = `${year}:${mes}`;
+    const override = FUTURE_OVERRIDES[key];
+    const desde = (override && override.desde) ? override.desde : cursor;
+    const hasta = (override && override.hasta) ? override.hasta : addDays(desde, FUTURE_CYCLE_LEN-1);
+    FUTURE_RANGES_MAP[key] = {desde, hasta};
+    cursor = addDays(hasta, 1);
+  });
+}
+
+function cycleRange(year, mes){
+  const key = `${year}:${mes}`;
+  return FUTURE_RANGES_MAP[key] || {desde: getCycleStart(), hasta: getCycleStart()};
+}
+
+function dayList(year, mes){
+  if(PERFIL_ACTIVO === 'default' && year===BASE_YEAR && DATA[mes]) return dateRange(DATA[mes].desde, DATA[mes].hasta);
+  const r = cycleRange(year, mes);
+  return dateRange(r.desde, r.hasta);
+}
+
+// ---- Años disponibles (se guardan para que "Agregar año" persista)
+let YEARS = [BASE_YEAR];
+async function loadYears(){
+  try{
+    let v = await storageGet(`years:${PERFIL_ACTIVO}`);
+    if(!v && PERFIL_ACTIVO === 'default'){ v = await storageGet('years'); }
+    YEARS = v ? JSON.parse(v) : [BASE_YEAR];
+  }catch(e){ YEARS = [BASE_YEAR]; }
+}
+async function saveYears(){
+  await storageSet(`years:${PERFIL_ACTIVO}`, JSON.stringify(YEARS));
+}
+async function addYear(){
+  const next = Math.max(...YEARS) + 1;
+  YEARS.push(next);
+  await saveYears();
+  buildFutureRanges();
+  currentYear = next;
+  currentTab = "Resumen Anual";
+  renderYearTabs(); renderSpecialTabs(); renderTabs(); renderContent();
+}
+
+const HIST_MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio"];
+function tarifaPromedios(){
+  const rates=[], subRatios=[], alumRatios=[];
+  HIST_MESES.forEach(m=>{
+    const d = DATA[m];
+    rates.push(d.valor_consumo/d.consumo);
+    subRatios.push(d.subsidio_cruzado/d.consumo);
+    alumRatios.push(d.alumbrado/d.consumo);
+  });
+  const avg = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
+  return { tarifaProm: avg(rates), subsidioProm: avg(subRatios), alumbradoProm: avg(alumRatios) };
+}
+const FIXED = { comercial:1.41, bomberos:2.41, subsidio_adulto:6.41, iva:0 };
+const SUBSIDIO_ADULTO_MONTO = 6.41; // monto observado en las facturas reales de esta cuenta
+let ES_TERCERA_EDAD = true; // por defecto coincide con el estado actual de la cuenta (ya calificada)
+async function loadTerceraEdad(){
+  let v = await storageGet(`es_tercera_edad:${PERFIL_ACTIVO}`);
+  if(v === null && PERFIL_ACTIVO === 'default'){ v = await storageGet('es_tercera_edad'); }
+  ES_TERCERA_EDAD = (v === null || v === undefined) ? true : (v === 'true');
+  aplicarTerceraEdad();
+}
+async function saveTerceraEdad(val){
+  ES_TERCERA_EDAD = val;
+  await storageSet(`es_tercera_edad:${PERFIL_ACTIVO}`, String(val));
+  aplicarTerceraEdad();
+}
+function aplicarTerceraEdad(){
+  FIXED.subsidio_adulto = ES_TERCERA_EDAD ? SUBSIDIO_ADULTO_MONTO : 0;
+}
+
+// ---- Datos del cliente (con soporte para varios perfiles/cuentas)
+const CLIENTE_DEFAULT = {
+  nombre: "ORELLANA MOSCOSO REINA ISABEL",
+  cedula: "0907635593",
+  direccion: "URB. BRISAS DE SANTAY MZ-V SL-16A / DURÁN - DURÁN",
+  cuenta: "200046459737",
+  medidor: "20230246796"
+};
+let CLIENTE = {...CLIENTE_DEFAULT};
+let PERFILES = [];
+let PERFIL_ACTIVO = "default";
+
+async function loadCliente(){
+  const v = await storageGet('perfiles_cliente');
+  PERFILES = v ? JSON.parse(v) : [];
+  const activo = await storageGet('perfil_activo');
+  PERFIL_ACTIVO = activo || (PERFILES.length ? PERFILES[0].id : "");
+  const encontrado = PERFILES.find(p => p.id === PERFIL_ACTIVO);
+  CLIENTE = encontrado ? {...encontrado} : {...CLIENTE_DEFAULT, nombre:"", cedula:"", direccion:"", cuenta:"", medidor:""};
+}
+async function guardarPerfiles(){
+  await storageSet('perfiles_cliente', JSON.stringify(PERFILES));
+  await storageSet('perfil_activo', PERFIL_ACTIVO);
+}
+async function actualizarClienteActivo(datos){
+  CLIENTE = {...CLIENTE, ...datos};
+  const idx = PERFILES.findIndex(p => p.id === PERFIL_ACTIVO);
+  if(idx >= 0) PERFILES[idx] = {id: PERFIL_ACTIVO, ...CLIENTE};
+  else PERFILES.push({id: PERFIL_ACTIVO, ...CLIENTE});
+  await guardarPerfiles();
+}
+async function recargarDatosPerfil(irAResumen = true){
+  await loadYears();
+  await loadOverrides();
+  await loadTerceraEdad();
+  buildFutureRanges();
+  currentYear = YEARS[0] || BASE_YEAR;
+  if(irAResumen) currentTab = "Resumen Anual";
+}
+async function nuevoPerfil(){
+  const id = "perfil_" + Date.now();
+  const nuevo = {id, nombre:"", cedula:"", direccion:"", cuenta:"", medidor:""};
+  PERFILES.push(nuevo);
+  PERFIL_ACTIVO = id;
+  CLIENTE = {...nuevo};
+  await guardarPerfiles();
+  await recargarDatosPerfil(false); // se queda en Ajustes para llenar los datos del nuevo perfil
+}
+async function cambiarPerfilActivo(id){
+  PERFIL_ACTIVO = id;
+  const encontrado = PERFILES.find(p => p.id === id);
+  CLIENTE = encontrado ? {...encontrado} : {...CLIENTE_DEFAULT};
+  await storageSet('perfil_activo', PERFIL_ACTIVO);
+  await recargarDatosPerfil();
+}
+async function borrarDatosDePerfil(id){
+  let yearsDelPerfil = [BASE_YEAR];
+  try{
+    let v = await storageGet(`years:${id}`);
+    if(!v && id === 'default') v = await storageGet('years');
+    yearsDelPerfil = v ? JSON.parse(v) : [BASE_YEAR];
+  }catch(e){}
+  for(const year of yearsDelPerfil){
+    for(const mes of MESES){
+      await storageDelete(`lecturas:${id}:${year}:${mes}`);
+      await storageDelete(`factura_manual:${id}:${year}:${mes}`);
+      await storageDelete(`subsidio_extra:${id}:${year}:${mes}`);
+      await storageDelete(`meta_ahorro:${id}:${year}:${mes}`);
+    }
+  }
+  await storageDelete(`years:${id}`);
+  await storageDelete(`future_overrides:${id}`);
+  await storageDelete(`es_tercera_edad:${id}`);
+}
+
+async function borrarPerfil(id){
+  // Borra también los datos de consumo de ese perfil (años, lecturas, facturas, etc.)
+  await borrarDatosDePerfil(id);
+
+  PERFILES = PERFILES.filter(p => p.id !== id);
+
+  if(PERFILES.length === 0){
+    PERFIL_ACTIVO = "";
+    CLIENTE = {...CLIENTE_DEFAULT, nombre:"", cedula:"", direccion:"", cuenta:"", medidor:""};
+    await guardarPerfiles();
+    return "sin_perfiles"; // el llamador debe volver a la pantalla de inicio
+  }
+
+  if(PERFIL_ACTIVO === id){
+    PERFIL_ACTIVO = PERFILES[0].id;
+    CLIENTE = {...PERFILES[0]};
+  }
+  await guardarPerfiles();
+  await recargarDatosPerfil(false); // se queda en Ajustes, ya que ahí mismo se estaba borrando
+  return "ok";
+}
+
+// Borra TODOS los perfiles y todos sus datos (años, lecturas, facturas, cliente, etc.)
+// para dejar la app completamente en blanco antes de compartirla con alguien más.
+async function borrarTodoParaCompartir(){
+  for(const p of PERFILES){
+    await borrarDatosDePerfil(p.id);
+  }
+  PERFILES = [];
+  PERFIL_ACTIVO = "";
+  CLIENTE = {...CLIENTE_DEFAULT, nombre:"", cedula:"", direccion:"", cuenta:"", medidor:""};
+  await guardarPerfiles();
+}
+
+async function compartirApp(){
+  const esHosteada = location.protocol === 'http:' || location.protocol === 'https:';
+
+  if(esHosteada){
+    // La app está publicada en una dirección real: compartimos el LINK, no el archivo.
+    const url = location.origin + location.pathname;
+    try{
+      if(navigator.share){
+        await navigator.share({
+          title: 'Registro de Consumo Eléctrico',
+          text: 'App para llevar el registro de tu consumo eléctrico.',
+          url: url
+        });
+        return;
+      }
+    }catch(e){
+      if(e && e.name === 'AbortError') return; // el usuario cerró el share sheet a propósito
+      console.error('No se pudo usar el compartir nativo, se copiará el link en su lugar:', e);
+    }
+    // Sin soporte para compartir (ej. computadora de escritorio): copiar el link al portapapeles.
+    try{
+      await navigator.clipboard.writeText(url);
+      alert(LANG==='en' ? `Link copied to clipboard:\n${url}` : `Se copió el link al portapapeles:\n${url}`);
+    }catch(e){
+      window.prompt(LANG==='en' ? 'Copy this link to share it:' : 'Copia este link para compartirlo:', url);
+    }
+    return;
+  }
+
+  // Abierta como archivo local (sin hosting real): no hay un link que compartir,
+  // así que se comparte/descarga el propio archivo .html, como antes.
+  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  const filename = 'registro_consumo_electrico.html';
+
+  let compartidoOk = false;
+  try{
+    const file = new File([html], filename, {type:'text/html'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({
+        files:[file],
+        title: 'Registro de Consumo Eléctrico',
+        text: 'App para llevar el registro de tu consumo eléctrico.'
+      });
+      compartidoOk = true;
+    }
+  }catch(e){
+    if(e && e.name === 'AbortError') return; // el usuario cerró el share sheet a propósito, no es un error
+    console.error('No se pudo usar el compartir nativo, se intentará descargar en su lugar:', e);
+  }
+  if(compartidoOk) return;
+
+  // Si el compartir nativo no está disponible o falló por cualquier motivo (ej. abierto
+  // como archivo local sin conexión segura), siempre se puede caer a la descarga manual.
+  try{
+    const blob = new Blob([html], {type:'text/html'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert(LANG==='en'
+      ? 'The file was downloaded. Now you can attach it in WhatsApp, email, etc.'
+      : 'Se descargó el archivo. Ahora puedes adjuntarlo en WhatsApp, correo, etc.');
+  }catch(e){
+    console.error('Error al descargar:', e);
+    alert(LANG==='en' ? "Couldn't share or download the app automatically." : 'No se pudo compartir ni descargar la app automáticamente.');
+  }
+}
+
+// Flujo completo al tocar "Compartir esta app": primero avisa que hay que borrar los
+// datos, ofrece exportar un respaldo antes de borrar, borra todo, y recién ahí comparte.
+async function iniciarFlujoCompartir(){
+  const esHosteada = location.protocol === 'http:' || location.protocol === 'https:';
+  if(esHosteada || PERFILES.length === 0){
+    // Si está publicada, compartir el link nunca toca los datos de nadie — se comparte directo.
+    // Si no hay ningún perfil ni datos que proteger, tampoco hay nada que preguntar.
+    await compartirApp();
+    return;
+  }
+
+  const msgBorrar = LANG==='en'
+    ? "To share this app safely, the data saved on this device needs to be wiped first (every profile, years, readings, invoices). Continue?"
+    : "Para compartir la app de forma segura, primero hay que borrar los datos guardados en este dispositivo (todos los perfiles, años, lecturas y facturas). ¿Deseas continuar?";
+  if(!confirm(msgBorrar)) return;
+
+  const msgExportar = LANG==='en'
+    ? "Do you want to export a backup (JSON) of your data before wiping and sharing? If you say No, it will just skip the backup and continue wiping + sharing anyway."
+    : "¿Quieres exportar un respaldo (JSON) de tus datos antes de borrar y compartir? Si dices No, simplemente se salta el respaldo y sigue con borrar + compartir de todas formas.";
+  if(confirm(msgExportar)){
+    await exportarJSON();
+    await new Promise(r=>setTimeout(r, 400)); // dar tiempo a que la descarga del respaldo se dispare bien
+  }
+
+  await borrarTodoParaCompartir();
+  volverAPantallaDeInicio();
+  await compartirApp();
+}
+
+function volverAPantallaDeInicio(){
+  document.getElementById('mainWrap').style.display = 'none';
+  document.getElementById('drawerOverlay').style.display = 'none';
+  document.getElementById('drawerPanel').style.display = 'none';
+  document.getElementById('landingScreen').style.display = 'flex';
+  mostrarPantallaBienvenida();
+  try{ history.pushState({screen:'landing'}, '', '#'); }catch(e){ /* se ignora si no está permitido */ }
+}
+
+let THEME = "dark";
+async function loadTheme(){
+  const v = await storageGet('theme');
+  THEME = v === 'light' ? 'light' : 'dark';
+  aplicarTheme();
+}
+async function saveTheme(val){
+  THEME = val;
+  await storageSet('theme', val);
+  aplicarTheme();
+}
+function aplicarTheme(){
+  document.body.classList.toggle('light', THEME === 'light');
+  const btn = document.getElementById('themeToggleBtn');
+  if(btn) btn.textContent = THEME === 'light' ? t('theme_light') : t('theme_dark');
+}
+
+let PAIS = "EC";
+async function loadPais(){
+  const v = await storageGet('pais');
+  PAIS = v || "EC";
+}
+async function savePais(val){
+  PAIS = val;
+  await storageSet('pais', val);
+}
+
+let LANG = "es";
+async function loadLang(){
+  const v = await storageGet('lang');
+  LANG = v === 'en' ? 'en' : 'es';
+}
+async function saveLang(val){
+  LANG = val;
+  await storageSet('lang', val);
+}
+
+const I18N = {
+  es: {
+    app_title: "⚡ Registro de Consumo Eléctrico",
+    app_sub: "Cuenta 200046459737 · Réplica exacta del Excel: mismos meses, mismas fórmulas, misma tarifa",
+    tab_ajustes: "Ajustes", tab_resumen: "Resumen Anual", tab_tarifa: "Tarifa Eléctrica",
+    btn_export: "📥 Exportar respaldo (JSON)", btn_import: "📤 Importar respaldo (JSON)", btn_pdf: "🖨️ Generar reporte PDF",
+    theme_light: "☀️ Modo claro", theme_dark: "🌙 Modo oscuro",
+    lbl_date_format: "Formato de fecha:", lbl_tercera_edad: "¿Adulto Mayor (Tercera Edad)?",
+    lbl_pais: "País:", lbl_idioma: "Idioma:", lbl_tema: "Tema:",
+    ajustes_title: "Ajustes", ajustes_sub: "Configura aquí las preferencias generales de la app.",
+    dias_calc: "Días con consumo calculado", dias_periodo: "Días del periodo",
+    lect_ini: "Lectura Inicial", lect_fin: "Lectura Final", consumo: "Consumo", kwh_ingresados: "kWh ingresados",
+    kwh_facturados_real: "kWh facturados (real)", periodo: "Periodo", dia: "Día", hora: "Hora",
+    lectura_kwh: "Lectura (kWh)", consumo_diario: "Consumo diario", fecha: "Fecha",
+    origen: "Origen", total_factura: "Total Factura", estado: "Estado",
+    real_cnel: "Real (factura)", real_manual: "Real (manual)", real_ingresado: "Real (ingresado)", estimado: "Estimado",
+    coincide: "Coincide", verificar: "Verificar", pendiente: "Pendiente", faltan_lecturas: "Faltan lecturas",
+    guardar: "Guardar", aplicar: "Aplicar", borrar_mes: "Borrar datos de este mes",
+    verificacion: "Verificación", lecturas_diarias: "Lecturas diarias", consumo_diario_h: "Consumo diario",
+  },
+  en: {
+    app_title: "⚡ Electricity Consumption Log",
+    app_sub: "Account 200046459737 · Exact replica of the Excel: same months, same formulas, same tariff",
+    tab_ajustes: "Settings", tab_resumen: "Annual Summary", tab_tarifa: "Electricity Tariff",
+    btn_export: "📥 Export backup (JSON)", btn_import: "📤 Import backup (JSON)", btn_pdf: "🖨️ Generate PDF report",
+    theme_light: "☀️ Light mode", theme_dark: "🌙 Dark mode",
+    lbl_date_format: "Date format:", lbl_tercera_edad: "Senior citizen (65+)?",
+    lbl_pais: "Country:", lbl_idioma: "Language:", lbl_tema: "Theme:",
+    ajustes_title: "Settings", ajustes_sub: "Configure the app's general preferences here.",
+    dias_calc: "Days with calculated consumption", dias_periodo: "Days in period",
+    lect_ini: "Initial Reading", lect_fin: "Final Reading", consumo: "Consumption", kwh_ingresados: "kWh entered",
+    kwh_facturados_real: "kWh billed (real)", periodo: "Period", dia: "Day", hora: "Time",
+    lectura_kwh: "Reading (kWh)", consumo_diario: "Daily consumption", fecha: "Date",
+    origen: "Source", total_factura: "Total Bill", estado: "Status",
+    real_cnel: "Real (bill)", real_manual: "Real (manual)", real_ingresado: "Real (entered)", estimado: "Estimated",
+    coincide: "Matches", verificar: "Verify", pendiente: "Pending", faltan_lecturas: "Missing readings",
+    guardar: "Save", aplicar: "Apply", borrar_mes: "Clear this month's data",
+    verificacion: "Verification", lecturas_diarias: "Daily readings", consumo_diario_h: "Daily consumption",
+  }
+};
+function t(key){
+  return (I18N[LANG] && I18N[LANG][key]) || I18N.es[key] || key;
+}
+const MESES_EN = {"Enero":"January","Febrero":"February","Marzo":"March","Abril":"April","Mayo":"May","Junio":"June",
+  "Julio":"July","Agosto":"August","Septiembre":"September","Octubre":"October","Noviembre":"November","Diciembre":"December"};
+function mesLabel(mes){ return LANG==='en' ? (MESES_EN[mes]||mes) : mes; }
+const DIAS_SEMANA_EN = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+async function loadEntries(year, mes){
+  let v = await storageGet(`lecturas:${PERFIL_ACTIVO}:${year}:${mes}`);
+  if(!v && PERFIL_ACTIVO === 'default'){ v = await storageGet(`lecturas:${year}:${mes}`); }
+  return v ? JSON.parse(v) : {};
+}
+async function saveEntries(year, mes, entries){
+  await storageSet(`lecturas:${PERFIL_ACTIVO}:${year}:${mes}`, JSON.stringify(entries));
+}
+
+// Factura real ingresada a mano por el usuario (para meses que no vienen precargados en DATA)
+async function loadFacturaManual(year, mes){
+  let v = await storageGet(`factura_manual:${PERFIL_ACTIVO}:${year}:${mes}`);
+  if(!v && PERFIL_ACTIVO === 'default'){ v = await storageGet(`factura_manual:${year}:${mes}`); }
+  return v ? JSON.parse(v) : {consumo:null, total:null};
+}
+async function saveFacturaManual(year, mes, obj){
+  await storageSet(`factura_manual:${PERFIL_ACTIVO}:${year}:${mes}`, JSON.stringify(obj));
+}
+
+// Subsidio/compensación extraordinaria del gobierno para un mes puntual (se resta del total estimado)
+async function loadSubsidioExtra(year, mes){
+  let v = await storageGet(`subsidio_extra:${PERFIL_ACTIVO}:${year}:${mes}`);
+  if(!v && PERFIL_ACTIVO === 'default'){ v = await storageGet(`subsidio_extra:${year}:${mes}`); }
+  return v ? parseFloat(v) : 0;
+}
+async function saveSubsidioExtra(year, mes, val){
+  await storageSet(`subsidio_extra:${PERFIL_ACTIVO}:${year}:${mes}`, String(val));
+}
+
+// Meta de ahorro mensual ($)
+async function loadMeta(year, mes){
+  let v = await storageGet(`meta_ahorro:${PERFIL_ACTIVO}:${year}:${mes}`);
+  if(!v && PERFIL_ACTIVO === 'default'){ v = await storageGet(`meta_ahorro:${year}:${mes}`); }
+  return v ? parseFloat(v) : null;
+}
+async function saveMeta(year, mes, val){
+  await storageSet(`meta_ahorro:${PERFIL_ACTIVO}:${year}:${mes}`, String(val));
+}
+
+// ---- Respaldo: Exportar / Importar JSON (datos exactos, reimportables)
+// Exporta el respaldo de un perfil específico, aunque no sea el que está activo en este momento
+// (se usa al borrar un perfil desde la pantalla principal, sin necesidad de entrar a la app primero).
+// Revisa si un perfil tiene algo guardado (datos del cliente o alguna lectura) —
+// para no ofrecer un respaldo de un perfil que en realidad está vacío.
+async function perfilTieneDatos(perfilId){
+  const p = PERFILES.find(x=>x.id===perfilId);
+  if(p && (p.nombre || p.cedula || p.direccion || p.cuenta || p.medidor)) return true;
+
+  let years = [BASE_YEAR];
+  try{
+    let v = await storageGet(`years:${perfilId}`);
+    if(!v && perfilId === 'default') v = await storageGet('years');
+    if(v) years = JSON.parse(v);
+  }catch(e){}
+
+  for(const year of years){
+    for(const mes of MESES){
+      let v = await storageGet(`lecturas:${perfilId}:${year}:${mes}`);
+      if(!v && perfilId === 'default') v = await storageGet(`lecturas:${year}:${mes}`);
+      if(v){
+        try{
+          const parsed = JSON.parse(v);
+          if(parsed && Object.keys(parsed).length > 0) return true;
+        }catch(e){}
+      }
+    }
+  }
+  return false;
+}
+
+async function exportarJSONDePerfil(perfilId){
+  const activoOriginal = PERFIL_ACTIVO;
+  const clienteOriginal = CLIENTE;
+  const yearsOriginal = YEARS;
+  const overridesOriginal = FUTURE_OVERRIDES;
+  const terceraEdadOriginal = ES_TERCERA_EDAD;
+
+  PERFIL_ACTIVO = perfilId;
+  const perfilObj = PERFILES.find(p=>p.id===perfilId);
+  CLIENTE = perfilObj ? {...perfilObj} : {...CLIENTE_DEFAULT};
+  await loadYears();
+  await loadOverrides();
+  await loadTerceraEdad();
+
+  await exportarJSON();
+
+  PERFIL_ACTIVO = activoOriginal;
+  CLIENTE = clienteOriginal;
+  YEARS = yearsOriginal;
+  FUTURE_OVERRIDES = overridesOriginal;
+  ES_TERCERA_EDAD = terceraEdadOriginal;
+}
+
+async function exportarJSON(){
+  const data = { version:1, exportado: new Date().toISOString(), years: YEARS,
+                 future_overrides: FUTURE_OVERRIDES, date_format: DATE_FORMAT,
+                 es_tercera_edad: ES_TERCERA_EDAD, cliente: CLIENTE, perfil_activo: PERFIL_ACTIVO,
+                 perfiles: PERFILES, meses: {} };
+  for(const year of YEARS){
+    for(const mes of MESES){
+      const entries = await loadEntries(year, mes);
+      const manual = await loadFacturaManual(year, mes);
+      const subsidio = await loadSubsidioExtra(year, mes);
+      const meta = await loadMeta(year, mes);
+      data.meses[`${year}:${mes}`] = { entries, manual, subsidio, meta };
+    }
+  }
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `respaldo_consumo_electrico_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function nombreHojaExcel(year, mes){
+  // Excel no permite más de 31 caracteres ni ciertos símbolos en el nombre de una pestaña
+  return `${mesLabel(mes)} ${year}`.slice(0,31);
+}
+
+async function filasFacturacion(year, mes){
+  const c = await computeMonth(year, mes);
+  const hist = c.hist;
+  const subsidioExtra = await loadSubsidioExtra(year, mes);
+  const sim = c.consumoIngresado > 0 ? simulador(c.consumoIngresado, subsidioExtra) : null;
+  const r2 = n => Math.round(n*100)/100;
+  const r4 = n => Math.round(n*10000)/10000;
+  const rows = [[]];
+  if(hist){
+    const real = facturaReal(mes);
+    rows.push([LANG==='en'?"REAL BILLING":"FACTURACIÓN REAL"]);
+    rows.push([LANG==='en'?"Energy Value":"Valor Consumo", real.valor_consumo]);
+    rows.push([LANG==='en'?"Commercialization":"Comercialización", real.comercial]);
+    rows.push([LANG==='en'?"Cross Subsidy (+)":"Subsidio Cruzado Solidario (+)", real.subsidio_cruzado]);
+    rows.push([LANG==='en'?"Senior Citizen Subsidy (-)":"Subsidio Adulto Mayor (-)", -real.subsidio_adulto]);
+    if(real.compensacion) rows.push(["Compensación D.E. 379 (-)", -real.compensacion]);
+    rows.push([LANG==='en'?"SE Subtotal":"Subtotal SE", real.subtotalSE]);
+    rows.push([LANG==='en'?"Public Lighting":"Alumbrado Público", real.alumbrado]);
+    rows.push([LANG==='en'?"SE+AP Total":"Total SE y AP", real.totalSEAP]);
+    rows.push([LANG==='en'?"Fire Dept. Fee":"Bomberos", real.bomberos]);
+    rows.push([LANG==='en'?"TOTAL BILL":"VALOR TOTAL FACTURA", real.totalFactura]);
+    rows.push([]);
+  } else {
+    const manual = await loadFacturaManual(year, mes);
+    if(manual.total!==null && manual.total!==undefined){
+      rows.push([LANG==='en'?"ENTERED INVOICE":"FACTURA INGRESADA"]);
+      rows.push([LANG==='en'?"Billed Consumption (kWh)":"Consumo Facturado (kWh)", manual.consumo ?? ""]);
+      rows.push([LANG==='en'?"TOTAL BILL (entered)":"VALOR TOTAL FACTURA (ingresado)", manual.total]);
+      rows.push([]);
+    }
+  }
+  rows.push([LANG==='en'?"TARIFF SIMULATOR":"SIMULADOR CON TARIFA REFERENCIAL"]);
+  if(sim){
+    rows.push([LANG==='en'?"Period Consumption (kWh)":"Consumo del periodo (kWh)", r2(c.consumoIngresado)]);
+    if(sim.esDignidad) rows.push([LANG==='en'?"Note":"Nota", LANG==='en' ? `${DIGNIDAD_KWH} kWh or less this month: Tarifa de la Dignidad applied` : `${DIGNIDAD_KWH} kWh o menos este mes: se aplicó la Tarifa de la Dignidad`]);
+    rows.push([sim.esDignidad ? (LANG==='en'?"Dignidad Rate Applied ($/kWh)":"Tarifa de la Dignidad aplicada ($/kWh)") : (LANG==='en'?"Avg. Energy Rate ($/kWh)":"Tarifa energía promedio ($/kWh)"), r4(sim.tarifaProm)]);
+    rows.push([LANG==='en'?"Estimated Energy Value":"Valor Consumo estimado", r2(sim.valorConsumo)]);
+    rows.push([LANG==='en'?"Commercialization":"Comercialización", r2(FIXED.comercial)]);
+    rows.push([LANG==='en'?"Estimated Cross Subsidy (+)":"Subsidio Cruzado estimado (+)", r2(sim.subsidioCruzado)]);
+    rows.push([LANG==='en'?"Senior Citizen Subsidy (-)":"Subsidio Adulto Mayor (-)", r2(-FIXED.subsidio_adulto)]);
+    rows.push([LANG==='en'?"SE Subtotal":"Subtotal SE", r2(sim.subtotalSE)]);
+    rows.push([LANG==='en'?"Estimated Public Lighting":"Alumbrado Público estimado", r2(sim.alumbrado)]);
+    rows.push([LANG==='en'?"Estimated SE+AP Total":"Total SE y AP estimado", r2(sim.totalSEAP)]);
+    rows.push([LANG==='en'?"Fire Dept. Fee":"Bomberos", r2(FIXED.bomberos)]);
+    if(sim.subsidioExtraVal) rows.push([LANG==='en'?"Extraordinary Gov. Subsidy (-)":"Subsidio Extraordinario del Gobierno (-)", r2(-sim.subsidioExtraVal)]);
+    rows.push([LANG==='en'?"ESTIMATED TOTAL BILL":"TOTAL FACTURA ESTIMADA", r2(sim.totalFactura)]);
+    const realTotal = hist ? facturaReal(mes).totalFactura : null;
+    if(realTotal!==null) rows.push([LANG==='en'?"Difference vs. real bill":"Diferencia vs. factura real", sim.totalFactura - realTotal]);
+  } else {
+    rows.push([LANG==='en'?"Not enough data yet.":"Aún no hay datos suficientes."]);
+  }
+  return rows;
+}
+
+async function exportarExcel(){
+  if(typeof XLSX === 'undefined'){
+    alert(LANG==='en' ? "The Excel library hasn't finished loading. Please try again in a moment." : "La librería de Excel todavía no termina de cargar. Intenta de nuevo en un momento.");
+    return;
+  }
+  const wb = XLSX.utils.book_new();
+  const headers = LANG==='en'
+    ? ["Date","Day","Reading (kWh)","Time","Daily Consumption (kWh)"]
+    : ["Fecha","Día","Lectura (kWh)","Hora","Consumo Diario (kWh)"];
+
+  for(const mes of MESES){
+    const c = await computeMonth(currentYear, mes);
+    const clienteRows = [
+      [LANG==='en'?"Client:":"Cliente:", CLIENTE.nombre||""],
+      [LANG==='en'?"ID:":"Cédula:", CLIENTE.cedula||""],
+      [LANG==='en'?"Address:":"Dirección:", CLIENTE.direccion||""],
+      [LANG==='en'?"Account:":"Cuenta Contrato:", CLIENTE.cuenta||""],
+      [LANG==='en'?"Meter:":"Medidor:", CLIENTE.medidor||""],
+      []
+    ];
+    const data = [...clienteRows, headers, ...c.rows.map(r=>[
+      fmtDate(r.fecha), diaSemana(r.fecha), r.lectura!==null?r.lectura:"", r.hora||"", r.consumo!==null?r.consumo:""
+    ])];
+    const facturaRows = await filasFacturacion(currentYear, mes);
+    const fullData = [...data, ...facturaRows];
+    const ws = XLSX.utils.aoa_to_sheet(fullData);
+    ws['!cols'] = [{wch:26},{wch:14},{wch:16},{wch:8},{wch:20}];
+    XLSX.utils.book_append_sheet(wb, ws, nombreHojaExcel(currentYear, mes));
+  }
+  if(wb.SheetNames.length === 0){
+    alert(LANG==='en' ? "There's no data to export yet." : "Todavía no hay datos para exportar.");
+    return;
+  }
+  XLSX.writeFile(wb, `lecturas_consumo_electrico_${currentYear}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// Importar un respaldo directo desde la pantalla de bienvenida (antes de elegir/crear perfil)
+async function importarDesdeLanding(file){
+  if(PERFILES.length === 0){
+    // Se crea con id "default" (no un id aleatorio) para que el ciclo de fechas coincida
+    // con el que tenía el perfil original cuando se generó este respaldo.
+    const nuevo = {id:"default", nombre:"", cedula:"", direccion:"", cuenta:"", medidor:""};
+    PERFILES.push(nuevo);
+    PERFIL_ACTIVO = "default";
+    CLIENTE = {...nuevo};
+    await guardarPerfiles();
+  }
+  await importarJSON(file);
+  mostrarPantallaBienvenida(); // se queda en la pantalla principal, con el perfil ya importado listo para elegir
+}
+
+async function importarJSON(file){
+  try{
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if(!data || typeof data !== 'object' || !data.meses){
+      alert("Este archivo no parece un respaldo válido de esta app.");
+      return;
+    }
+    if(!confirm("Esto reemplazará tus datos actuales con los del respaldo. ¿Continuar?")) return;
+    YEARS = data.years && data.years.length ? data.years : [BASE_YEAR];
+    await saveYears();
+    FUTURE_OVERRIDES = data.future_overrides || {};
+    await saveOverrides();
+    if(data.date_format){ await saveDateFormat(data.date_format); }
+    if(data.es_tercera_edad !== undefined && data.es_tercera_edad !== null){ await saveTerceraEdad(!!data.es_tercera_edad); }
+    if(data.cliente){ await actualizarClienteActivo(data.cliente); }
+    buildFutureRanges();
+    for(const key of Object.keys(data.meses)){
+      const idx = key.indexOf(":");
+      const year = parseInt(key.slice(0, idx));
+      const mes = key.slice(idx+1);
+      const d = data.meses[key];
+      if(d.entries) await saveEntries(year, mes, d.entries);
+      if(d.manual) await saveFacturaManual(year, mes, d.manual);
+      if(d.subsidio !== undefined && d.subsidio !== null) await saveSubsidioExtra(year, mes, d.subsidio);
+      if(d.meta !== undefined && d.meta !== null) await saveMeta(year, mes, d.meta);
+    }
+    currentYear = YEARS[0];
+    currentTab = "Resumen Anual";
+    const sel = document.getElementById('dateFormatSelect');
+    if(sel) sel.value = DATE_FORMAT;
+    const selEdad = document.getElementById('terceraEdadSelect');
+    if(selEdad) selEdad.value = String(ES_TERCERA_EDAD);
+    renderYearTabs(); renderSpecialTabs(); renderTabs();
+    await renderContent();
+    alert("Respaldo restaurado correctamente.");
+  }catch(e){
+    console.error(e);
+    alert("No se pudo leer el archivo. Asegúrate de que sea un respaldo JSON generado por esta misma app.");
+  }
+}
+
+// ---- Reporte PDF (de lectura, vía impresión del navegador)
+const REPORTE_CSS = `
+    body{font-family:Arial, sans-serif; color:#111; padding:24px;}
+    h1{font-size:20px; margin-bottom:2px;}
+    h2{font-size:16px; margin-top:26px; border-bottom:2px solid #333; padding-bottom:4px;}
+    h3{font-size:13px; margin-top:16px; color:#333;}
+    table{width:100%; border-collapse:collapse; font-size:11px; margin-top:6px;}
+    th,td{border:1px solid #ccc; padding:4px 6px; text-align:left;}
+    th{background:#eee;}
+    .small{color:#666; font-size:10px; margin-bottom:10px;}
+    .destacado{background:#eef6ee; border:1px solid #9c9; border-radius:6px; padding:10px 14px; margin:14px 0; font-size:13px;}
+    .destacado b{font-size:15px;}
+    .chartwrap{max-width:680px; margin:10px 0 20px;}
+    .cliente-box{border:1px solid #ccc; border-radius:6px; padding:12px 16px; margin:10px 0 16px; font-size:12px; background:#fafafa;}
+    .cliente-box .titulo{font-weight:bold; font-size:13px; margin-bottom:6px; color:#333;}
+    .cliente-box .fila{display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px dotted #ddd;}
+    .cliente-box .fila span:first-child{color:#666;}
+    .cliente-box .fila span:last-child{font-weight:bold;}
+`;
+const CHARTJS_CDN = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js";
+
+function clienteBoxHTML(){
+  return `<div class="cliente-box">
+    <div class="titulo">${LANG==='en'?'Client Information':'Datos del Cliente'}</div>
+    <div class="fila"><span>${LANG==='en'?'Name':'Nombre'}</span><span>${CLIENTE.nombre||"-"}</span></div>
+    <div class="fila"><span>${LANG==='en'?'ID (cédula)':'Cédula'}</span><span>${CLIENTE.cedula||"-"}</span></div>
+    <div class="fila"><span>${LANG==='en'?'Address':'Dirección'}</span><span>${CLIENTE.direccion||"-"}</span></div>
+    <div class="fila"><span>${LANG==='en'?'Account':'Cuenta Contrato'}</span><span>${CLIENTE.cuenta||"-"}</span></div>
+    <div class="fila" style="border-bottom:none;"><span>${LANG==='en'?'Meter No.':'Medidor No.'}</span><span>${CLIENTE.medidor||"-"}</span></div>
+  </div>`;
+}
+
+function chartCanvasHTML(canvasId, titulo){
+  return `<h2>${titulo}</h2><div class="chartwrap"><canvas id="${canvasId}" width="640" height="280"></canvas></div>`;
+}
+function chartScriptTag(canvasId, labels, data, label){
+  return `<scr` + `ipt>
+    new Chart(document.getElementById('${canvasId}'), {
+      type:'bar',
+      data:{ labels: ${JSON.stringify(labels)}, datasets:[{ label:'${label}', data: ${JSON.stringify(data)}, backgroundColor:'#4f8ff0' }] },
+      options:{ responsive:false, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true} } }
+    });
+  </scr` + `ipt>`;
+}
+
+function tarifaAplicadaHTML(){
+  const {tarifaProm, subsidioProm, alumbradoProm} = tarifaPromedios();
+  return `<h2>Tarifa Aplicada (a la fecha de este reporte)</h2>
+    <table>
+      <tr><th>Concepto</th><th>Valor</th></tr>
+      <tr><td>Tarifa energía promedio</td><td>${rate(tarifaProm)}/kWh</td></tr>
+      <tr><td>Subsidio Cruzado promedio</td><td>${rate(subsidioProm)}/kWh</td></tr>
+      <tr><td>Alumbrado Público promedio</td><td>${rate(alumbradoProm)}/kWh</td></tr>
+      <tr><td>Comercialización mensual (fijo)</td><td>${money(FIXED.comercial)}</td></tr>
+      <tr><td>Bomberos (fijo)</td><td>${money(FIXED.bomberos)}</td></tr>
+      <tr><td>Subsidio Ley Adulto Mayor (fijo, se resta)</td><td>${money(FIXED.subsidio_adulto)}</td></tr>
+    </table>
+    <div class="small">Calculada con el promedio real observado en las facturas reales de esta cuenta (ver hoja/pestaña "Tarifa Eléctrica").</div>`;
+}
+
+async function construirReportePDF(){
+  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reporte Consumo Eléctrico</title>
+  <script src="${CHARTJS_CDN}"></scr` + `ipt>`;
+  html += `<style>${REPORTE_CSS}</style></head><body>`;
+  html += `<h1>⚡ Reporte de Consumo Eléctrico</h1>`;
+  html += `<div class="small">Generado el ${new Date().toLocaleString()}</div>`;
+  html += clienteBoxHTML();
+
+  for(const year of YEARS){
+    html += `<h2>Año ${year}</h2>`;
+    html += `<table><tr><th>Mes</th><th>Lect. Inicial</th><th>Lect. Final</th><th>Consumo (kWh)</th><th>Días</th><th>Origen</th><th>Total Factura</th></tr>`;
+    const chartLabels = [], chartData = [];
+    const detalles = {};
+    for(const mes of MESES){
+      const d = await construirDetalleMes(year, mes);
+      detalles[mes] = d;
+      html += `<tr><td>${mes}</td><td>${d.lectIni!=null?d.lectIni.toFixed(2):"-"}</td><td>${d.lectFin!=null?d.lectFin.toFixed(2):"-"}</td><td>${d.c.consumoIngresado.toFixed(0)}</td><td>${d.dias}</td><td>${d.origen}</td><td>${d.total!=null?money(d.total):"-"}</td></tr>`;
+      chartLabels.push(mes.slice(0,3));
+      chartData.push(+d.c.consumoIngresado.toFixed(1));
+    }
+    html += `</table>`;
+
+    for(const mes of MESES){
+      const d = detalles[mes];
+      if(d.filled.length===0) continue;
+      html += `<h3>${mes} ${year}</h3>`;
+      html += `<div class="destacado">
+          <b>Consumo Total: ${kwh(d.c.consumoIngresado)}</b> &nbsp;·&nbsp;
+          <b>Valor Estimado a Pagar: ${d.total!=null ? money(d.total) : "-"}</b>
+          <div class="small" style="margin-top:4px;">Origen del valor: ${d.origen}</div>
+        </div>`;
+      html += `<table><tr><th></th><th>Detalle de Facturación</th></tr></table>`;
+      html += d.detalleFactura || '<div class="small">Sin factura real todavía.</div>';
+      html += `<div class="small" style="margin-top:10px; font-weight:bold;">Simulador con Tarifa Referencial</div>`;
+      html += d.detalleSimulador || '<div class="small">Sin datos suficientes.</div>';
+      html += `<div class="small" style="margin-top:10px; font-weight:bold;">Lecturas registradas</div>`;
+      if(d.analisis.fechasInusuales.length){
+        html += `<div class="small" style="color:#b45309; font-weight:bold;">⚠️ Días con consumo inusualmente alto (más de 50% sobre el promedio del mes): ${d.analisis.fechasInusuales.map(fmtDate).join(", ")}</div>`;
+      }
+      html += `<table><tr><th>Fecha</th><th>Día</th><th>Hora</th><th>Lectura (kWh)</th><th>Consumo diario</th></tr>`;
+      d.filled.forEach(r=>{
+        const esInusual = d.analisis.fechasInusuales.includes(r.fecha);
+        html += `<tr${esInusual ? ' style="background:#fde8e8;"' : ''}><td>${fmtDate(r.fecha)}</td><td>${diaSemana(r.fecha)}</td><td>${r.hora||"-"}</td><td>${r.lectura.toFixed(2)}</td><td>${r.consumo!==null?r.consumo.toFixed(2):"-"}${esInusual?' ⚠️':''}</td></tr>`;
+      });
+      html += `</table>`;
+    }
+
+    html += chartCanvasHTML(`chartYear${year}`, `Consumo Mensual ${year} (kWh)`);
+    html += chartScriptTag(`chartYear${year}`, chartLabels, chartData, "kWh");
+  }
+  html += `</body></html>`;
+  return html;
+}
+
+async function construirDetalleMes(year, mes){
+  const c = await computeMonth(year, mes);
+  const hist = c.hist;
+  const periodo = hist ? {desde:DATA[mes].desde, hasta:DATA[mes].hasta} : cycleRange(year, mes);
+  const dias = c.rows.length - 1;
+  const filled = c.rows.filter(r=>r.lectura!==null);
+  const lectIni = c.rows[0]?.lectura;
+  const lectFin = hist ? c.rows[c.rows.length-1]?.lectura : (filled.length ? filled[filled.length-1].lectura : null);
+
+  let total, origen, detalleFactura = "", detalleSimulador = "";
+  const subsidioExtra = await loadSubsidioExtra(year, mes);
+  const sim = c.consumoIngresado > 0 ? simulador(c.consumoIngresado, subsidioExtra) : null;
+  const analisis = analizarMes(c, subsidioExtra);
+  let manual = {consumo:null, total:null};
+
+  if(hist){
+    const real = facturaReal(mes);
+    total = real.totalFactura; origen = "Real (factura)";
+    detalleFactura = `
+      <table>
+        <tr><th>Concepto</th><th>Valor</th></tr>
+        <tr><td>Valor Consumo</td><td>${money(real.valor_consumo)}</td></tr>
+        <tr><td>Comercialización</td><td>${money(real.comercial)}</td></tr>
+        <tr><td>Subsidio Cruzado Solidario (+)</td><td>${money(real.subsidio_cruzado)}</td></tr>
+        <tr><td>Subsidio Adulto Mayor (-)</td><td>${money(-real.subsidio_adulto)}</td></tr>
+        ${real.compensacion ? `<tr><td>Compensación D.E. 379 (-)</td><td>${money(-real.compensacion)}</td></tr>` : ""}
+        <tr><td>Subtotal Servicio Eléctrico (SE)</td><td>${money(real.subtotalSE)}</td></tr>
+        <tr><td>Alumbrado Público</td><td>${money(real.alumbrado)}</td></tr>
+        <tr><td>Total SE y AP</td><td>${money(real.totalSEAP)}</td></tr>
+        <tr><td>Bomberos</td><td>${money(real.bomberos)}</td></tr>
+        <tr><td><b>VALOR TOTAL FACTURA</b></td><td><b>${money(real.totalFactura)}</b></td></tr>
+      </table>`;
+  } else {
+    manual = await loadFacturaManual(year, mes);
+    if(manual.total!==null && manual.total!==undefined){
+      total = manual.total; origen = "Real (ingresado por el usuario)";
+    } else {
+      total = sim ? sim.totalFactura : null; origen = "Estimado (Simulador con Tarifa Referencial)";
+    }
+  }
+
+  if(sim){
+    detalleSimulador = `
+      <table>
+        <tr><th>Concepto</th><th>Valor</th></tr>
+        <tr><td>Consumo del periodo</td><td>${kwh(c.consumoIngresado)}</td></tr>
+        ${sim.esDignidad ? `<tr><td colspan="2" style="color:#2e7d32;">✅ Este mes consumió ${DIGNIDAD_KWH} kWh o menos: se aplicó la Tarifa de la Dignidad.</td></tr>` : ""}
+        <tr><td>${sim.esDignidad ? "Tarifa de la Dignidad aplicada" : "Tarifa energía promedio"}</td><td>${rate(sim.tarifaProm)}/kWh</td></tr>
+        <tr><td>Valor Consumo estimado</td><td>${money(sim.valorConsumo)}</td></tr>
+        <tr><td>Comercialización</td><td>${money(FIXED.comercial)}</td></tr>
+        <tr><td>Subsidio Cruzado estimado (+)</td><td>${money(sim.subsidioCruzado)}</td></tr>
+        <tr><td>Subsidio Adulto Mayor (-)</td><td>${money(-FIXED.subsidio_adulto)}</td></tr>
+        <tr><td>Subtotal SE</td><td>${money(sim.subtotalSE)}</td></tr>
+        <tr><td>Alumbrado Público estimado</td><td>${money(sim.alumbrado)}</td></tr>
+        <tr><td>Total SE y AP estimado</td><td>${money(sim.totalSEAP)}</td></tr>
+        <tr><td>Bomberos</td><td>${money(FIXED.bomberos)}</td></tr>
+        ${sim.subsidioExtraVal ? `<tr><td>Subsidio Extraordinario del Gobierno (-)</td><td>${money(-sim.subsidioExtraVal)}</td></tr>` : ""}
+        <tr><td><b>TOTAL FACTURA ESTIMADA</b></td><td><b>${money(sim.totalFactura)}</b></td></tr>
+        ${(!hist && manual.total!=null) ? `<tr><td><b>VALOR TOTAL FACTURA (ingresado)</b></td><td><b>${money(manual.total)}</b></td></tr>` : ""}
+        ${(hist || manual.total!=null) ? `<tr><td>Diferencia vs. factura real</td><td>${money(sim.totalFactura - (hist ? facturaReal(mes).totalFactura : manual.total))}</td></tr>` : ""}
+      </table>`;
+  }
+
+  return {c, hist, periodo, dias, filled, lectIni, lectFin, total, origen, detalleFactura, detalleSimulador, analisis};
+}
+
+async function construirReporteMes(year, mes){
+  const {c, hist, periodo, dias, filled, lectIni, lectFin, total, origen, detalleFactura, detalleSimulador, analisis} =
+    await construirDetalleMes(year, mes);
+
+  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reporte ${mes} ${year} — Consumo Eléctrico</title>
+  <script src="${CHARTJS_CDN}"></scr` + `ipt>`;
+  html += `<style>${REPORTE_CSS}</style></head><body>`;
+  html += `<h1>⚡ Reporte de Consumo Eléctrico — ${mesLabel(mes)} ${year}</h1>`;
+  html += `<div class="small">Generado el ${new Date().toLocaleString()}</div>`;
+  html += `<div class="small">Periodo ${hist ? "real (factura)" : "estimado"}: ${fmtDate(periodo.desde)} a ${fmtDate(periodo.hasta)} (${dias} días)</div>`;
+  html += clienteBoxHTML();
+
+  html += `<div class="destacado">
+      <b>Consumo Total: ${kwh(c.consumoIngresado)}</b> &nbsp;·&nbsp;
+      <b>Valor Estimado a Pagar: ${total!=null ? money(total) : "-"}</b>
+      <div class="small" style="margin-top:4px;">Origen del valor: ${origen}</div>
+    </div>`;
+
+  html += `<table>
+      <tr><th>Lectura Inicial</th><th>Lectura Final</th><th>Consumo Total (kWh)</th><th>Días con dato</th><th>Días del periodo</th></tr>
+      <tr>
+        <td>${lectIni!=null?lectIni.toFixed(2):"-"}</td>
+        <td>${lectFin!=null?lectFin.toFixed(2):"-"}</td>
+        <td>${c.consumoIngresado.toFixed(2)}</td>
+        <td>${filled.length}</td>
+        <td>${dias}</td>
+      </tr>
+    </table>`;
+
+  html += `<h2>Detalle de Facturación</h2>${detalleFactura || '<div class="small">Sin datos suficientes todavía.</div>'}`;
+  html += `<h2>Simulador con Tarifa Referencial</h2>${detalleSimulador || '<div class="small">Ingresa lecturas para ver la estimación.</div>'}`;
+
+  if(filled.length){
+    const chartLabels = c.rows.map(r => { const [y,m,d]=r.fecha.split("-"); return DATE_FORMAT==="mdy" ? `${m}/${d}` : `${d}/${m}`; });
+    const chartData = c.rows.map(r => r.consumo!==null ? +r.consumo.toFixed(2) : null);
+
+    html += `<h2>Lecturas Registradas</h2>`;
+    if(analisis.fechasInusuales.length){
+      html += `<div class="small" style="color:#b45309; font-weight:bold;">⚠️ Días con consumo inusualmente alto (más de 50% sobre el promedio del mes): ${analisis.fechasInusuales.map(fmtDate).join(", ")}</div>`;
+    }
+    html += `<table><tr><th>Fecha</th><th>Día</th><th>Hora</th><th>Lectura (kWh)</th><th>Consumo diario</th></tr>`;
+    filled.forEach(r=>{
+      const esInusual = analisis.fechasInusuales.includes(r.fecha);
+      html += `<tr${esInusual ? ' style="background:#fde8e8;"' : ''}><td>${fmtDate(r.fecha)}</td><td>${diaSemana(r.fecha)}</td><td>${r.hora||"-"}</td><td>${r.lectura.toFixed(2)}</td><td>${r.consumo!==null?r.consumo.toFixed(2):"-"}${esInusual?' ⚠️':''}</td></tr>`;
+    });
+    html += `</table>`;
+
+    html += chartCanvasHTML('chartMes', `Consumo Diario — ${mes} ${year}`);
+    html += chartScriptTag('chartMes', chartLabels, chartData, "kWh/día");
+  }
+  html += `</body></html>`;
+  return html;
+}
+
+async function generarReportePDF(){
+  const w = window.open('', '_blank');
+  if(!w){ alert('El navegador bloqueó la ventana emergente. Permite ventanas emergentes para generar el reporte.'); return; }
+  w.document.write('<p style="font-family:Arial;padding:20px;">Generando reporte…</p>');
+  const esMes = MESES.includes(currentTab);
+  const html = esMes ? await construirReporteMes(currentYear, currentTab) : await construirReportePDF();
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 300);
+}
+
+async function computeMonth(year, mes){
+  let entries = await loadEntries(year, mes);
+  const hist = (PERFIL_ACTIVO === 'default' && year===BASE_YEAR && !!DATA[mes]);
+  if(hist){
+    let changed=false;
+    if(entries[DATA[mes].desde]===undefined){ entries[DATA[mes].desde]=DATA[mes].lect_ini; changed=true; }
+    if(entries[DATA[mes].hasta]===undefined){ entries[DATA[mes].hasta]=DATA[mes].lect_fin; changed=true; }
+    if(changed) await saveEntries(year, mes, entries);
+  }
+  const days = dayList(year, mes);
+  const rows = days.map(fecha => ({fecha, lectura: entryValor(entries[fecha]), hora: entryHora(entries[fecha])}));
+  for(let i=0;i<rows.length;i++){
+    if(i===0 || rows[i].lectura===null || rows[i-1].lectura===null){ rows[i].consumo=null; }
+    else { rows[i].consumo = +(rows[i].lectura - rows[i-1].lectura).toFixed(2); }
+  }
+  const consumoIngresado = rows.reduce((s,r)=> s + (r.consumo||0), 0);
+  const fechasDecrecientes = rows.filter(r => r.consumo !== null && r.consumo < 0).map(r => r.fecha);
+  return {year, mes, hist, rows, consumoIngresado, entries, fechasDecrecientes};
+}
+
+const DIGNIDAD_KWH = 130; // umbral de la Tarifa de la Dignidad para la región Costa
+const DIGNIDAD_RATE = 0.04; // $/kWh de la Tarifa de la Dignidad (Pliego Tarifario 2026)
+function simulador(consumo, subsidioExtra){
+  const {tarifaProm, subsidioProm, alumbradoProm} = tarifaPromedios();
+  if(!consumo || consumo<=0) return null;
+  const esDignidad = consumo <= DIGNIDAD_KWH;
+  const tarifaAplicada = esDignidad ? DIGNIDAD_RATE : tarifaProm;
+  const valorConsumo = consumo*tarifaAplicada;
+  // El Subsidio Cruzado lo pagan los consumos por ENCIMA del umbral de Dignidad
+  // (para financiar el subsidio); quien está dentro del umbral no lo paga.
+  const subsidioCruzado = esDignidad ? 0 : consumo*subsidioProm;
+  const subtotalSE = valorConsumo + FIXED.comercial + subsidioCruzado - FIXED.subsidio_adulto;
+  const alumbrado = consumo*alumbradoProm;
+  const totalSEAP = subtotalSE + alumbrado;
+  const subsidioExtraVal = subsidioExtra || 0;
+  const totalFactura = totalSEAP + FIXED.bomberos - subsidioExtraVal;
+  return {valorConsumo, subsidioCruzado, subtotalSE, alumbrado, totalSEAP, subsidioExtraVal, totalFactura, tarifaProm: tarifaAplicada, esDignidad};
+}
+function facturaReal(mes){
+  const d = DATA[mes];
+  const subtotalSE = d.valor_consumo + d.comercial + d.subsidio_cruzado - d.subsidio_adulto - d.compensacion;
+  const totalSEAP = subtotalSE + d.alumbrado;
+  const totalFactura = totalSEAP + d.bomberos;
+  return {...d, subtotalSE, totalSEAP, totalFactura};
+}
+
+// Analiza los días ya ingresados de un mes: promedio diario, días con consumo
+// inusualmente alto, proyección de fin de mes y costo acumulado a la fecha.
+function analizarMes(c, subsidioExtra){
+  const validDays = c.rows.filter(r => r.consumo !== null);
+  const n = validDays.length;
+  const promedio = n > 0 ? validDays.reduce((s,r)=>s+r.consumo,0) / n : 0;
+  const UMBRAL = 1.5; // 50% por encima del promedio
+  const fechasInusuales = (n >= 3)
+    ? validDays.filter(r => r.consumo > promedio * UMBRAL).map(r => r.fecha)
+    : [];
+  const diasTotalesPeriodo = c.rows.length - 1;
+  const diasTranscurridos = n;
+  const proyeccionConsumo = promedio > 0 ? promedio * diasTotalesPeriodo : 0;
+  const {tarifaProm} = tarifaPromedios();
+  const costoAcumuladoEnergia = c.consumoIngresado * tarifaProm;
+  const simProyeccion = proyeccionConsumo > 0 ? simulador(proyeccionConsumo, subsidioExtra) : null;
+  return {
+    promedio, n, fechasInusuales, diasTotalesPeriodo, diasTranscurridos,
+    proyeccionConsumo, costoAcumuladoEnergia, simProyeccion
+  };
+}
+
+function prevMonthRef(year, mes){
+  const idx = MESES.indexOf(mes);
+  if(idx === 0){
+    const prevYear = year - 1;
+    if(!YEARS.includes(prevYear)) return null;
+    return {year: prevYear, mes: "Diciembre"};
+  }
+  return {year, mes: MESES[idx-1]};
+}
+
+async function compararConMesAnterior(year, mes, diasTranscurridos){
+  if(diasTranscurridos < 1) return null;
+  const prevRef = prevMonthRef(year, mes);
+  if(!prevRef) return null;
+  const prevC = await computeMonth(prevRef.year, prevRef.mes);
+  const subset = prevC.rows.slice(1, diasTranscurridos+1);
+  const validSubset = subset.filter(r=>r.consumo!==null);
+  if(validSubset.length < diasTranscurridos) return null;
+  const prevConsumo = validSubset.reduce((s,r)=>s+r.consumo,0);
+  if(prevConsumo <= 0) return null;
+  return {prevRef, prevConsumo, diasComparados: diasTranscurridos};
+}
+
+let currentYear = BASE_YEAR;
+let currentTab = "Resumen Anual";
+const SPECIAL_TABS = ["Resumen Anual","Tarifa Eléctrica"];
+const ALL_TABS = MESES;
+
+// Navega a una pestaña/mes dentro de la app, actualiza la pantalla, y registra el
+// cambio en el historial del navegador para que el botón "Atrás" funcione.
+function navegarA(tab, year){
+  if(year !== undefined) currentYear = year;
+  currentTab = tab;
+  renderYearTabs(); renderSpecialTabs(); renderTabs(); renderContent();
+  window.scrollTo(0, 0);
+  try{
+    history.pushState({screen:'app', tab: currentTab, year: currentYear}, '', '#'+encodeURIComponent(currentTab));
+  }catch(e){ /* algunos entornos no permiten pushState (ej. ciertos iframes), se ignora */ }
+}
+
+function renderYearTabs(){
+  const y = document.getElementById('yearTabs');
+  y.innerHTML = "";
+  YEARS.forEach(year=>{
+    const wrap = document.createElement('span');
+    wrap.style.display = 'inline-flex';
+    wrap.style.alignItems = 'center';
+    wrap.style.gap = '2px';
+    const b = document.createElement('button');
+    b.textContent = year;
+    if(year===currentYear) b.classList.add('active');
+    b.onclick = ()=>{ navegarA(currentTab, year); };
+    wrap.appendChild(b);
+    if(year !== BASE_YEAR){
+      const del = document.createElement('button');
+      del.textContent = "✕";
+      del.className = "delbtn";
+      del.title = `Borrar el año ${year}`;
+      del.onclick = (e)=>{ e.stopPropagation(); deleteYear(year); };
+      wrap.appendChild(del);
+    }
+    y.appendChild(wrap);
+  });
+  const add = document.createElement('button');
+  add.textContent = "+ Agregar año";
+  add.className = "addyear";
+  add.onclick = addYear;
+  y.appendChild(add);
+}
+
+async function deleteYear(year){
+  if(!confirm(`¿Borrar todo el año ${year}? Se perderán todas las lecturas ingresadas en sus 12 meses. Esta acción no se puede deshacer.`)) return;
+  for(const mes of MESES){
+    await storageDelete(`lecturas:${PERFIL_ACTIVO}:${year}:${mes}`);
+    await storageDelete(`factura_manual:${PERFIL_ACTIVO}:${year}:${mes}`);
+    await storageDelete(`subsidio_extra:${PERFIL_ACTIVO}:${year}:${mes}`);
+    await storageDelete(`meta_ahorro:${PERFIL_ACTIVO}:${year}:${mes}`);
+    delete FUTURE_OVERRIDES[`${year}:${mes}`];
+  }
+  await saveOverrides();
+  YEARS = YEARS.filter(y2 => y2 !== year);
+  await saveYears();
+  buildFutureRanges();
+  if(currentYear === year){ currentYear = BASE_YEAR; currentTab = "Resumen Anual"; }
+  renderYearTabs(); renderSpecialTabs(); renderTabs(); renderContent();
+  if(document.getElementById('drawerBody')){ drawerLevel = 'root'; renderDrawer(); }
+}
+
+function tabLabel(name){
+  if(name==="Ajustes") return t('tab_ajustes');
+  if(name==="Resumen Anual") return t('tab_resumen');
+  if(name==="Tarifa Eléctrica") return t('tab_tarifa');
+  return mesLabel(name);
+}
+function renderSpecialTabs(){
+  const el = document.getElementById('specialTabs');
+  el.innerHTML = "";
+  SPECIAL_TABS.forEach(name=>{
+    const b = document.createElement('button');
+    b.textContent = tabLabel(name);
+    if(name===currentTab) b.classList.add('active');
+    b.onclick = ()=>{ navegarA(name); };
+    el.appendChild(b);
+  });
+}
+function renderTabs(){
+  const tabsEl = document.getElementById('tabs');
+  tabsEl.innerHTML = "";
+  ALL_TABS.forEach(name=>{
+    const b = document.createElement('button');
+    b.textContent = tabLabel(name);
+    if(name===currentTab) b.classList.add('active');
+    b.onclick = ()=>{ navegarA(name); };
+    tabsEl.appendChild(b);
+  });
+  const footer = document.getElementById('drawerFooter');
+  if(footer) renderDrawerFooter();
+}
+
+let charts = {};
+function destroyChart(id){ if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
+
+// ---- Menú lateral (hamburguesa): años -> meses, estilo Gmail
+let drawerLevel = 'root'; // 'root' | 'months'
+let drawerYear = null;
+
+function openDrawer(){
+  drawerLevel = 'root';
+  drawerYear = null;
+  renderDrawer();
+  renderDrawerFooter();
+  document.getElementById('drawerOverlay').style.display = 'block';
+  document.getElementById('drawerPanel').style.display = 'flex';
+}
+function closeDrawer(){
+  document.getElementById('drawerOverlay').style.display = 'none';
+  document.getElementById('drawerPanel').style.display = 'none';
+}
+function renderDrawerFooter(){
+  const footer = document.getElementById('drawerFooter');
+  footer.innerHTML = "";
+  const row = drawerRow(`⚙️ ${t('tab_ajustes')}`, ()=>{
+    currentTab = "Ajustes"; closeDrawer(); renderSpecialTabs(); renderTabs(); renderContent();
+  }, {active: currentTab==="Ajustes"});
+  row.style.marginBottom = '0';
+  row.style.width = '100%';
+  footer.appendChild(row);
+}
+function drawerRow(label, onClick, opts){
+  opts = opts || {};
+  const row = document.createElement('div');
+  row.textContent = label;
+  row.style.cssText = `padding:12px 10px; border-radius:8px; cursor:pointer; font-size:.92rem; display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;`;
+  row.style.background = opts.active ? 'var(--card2)' : 'transparent';
+  row.style.color = opts.active ? 'var(--accent)' : 'var(--text)';
+  row.style.fontWeight = opts.active ? '700' : '400';
+  row.onclick = onClick;
+  return row;
+}
+
+// ---- Buscador (ícono 🔍 arriba a la derecha, ej. "Junio 2026", "Tarifa") ----
+function normalizarBusqueda(s){
+  return (s||"").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+}
+function listaDestinosBuscables(){
+  const items = [];
+  items.push({icono:'📊', label: t('tab_resumen'), tab: "Resumen Anual", year: currentYear});
+  items.push({icono:'💲', label: t('tab_tarifa'), tab: "Tarifa Eléctrica", year: currentYear});
+  YEARS.forEach(year=>{
+    MESES.forEach(mes=>{
+      items.push({icono:'🗓️', label: `${mesLabel(mes)} ${year}`, tab: mes, year: year});
+    });
+  });
+  return items;
+}
+let searchSelectedIndex = -1;
+let searchResultadosActuales = [];
+function openSearch(){
+  const input = document.getElementById('searchInput');
+  input.value = "";
+  searchSelectedIndex = -1;
+  renderResultadosBusqueda("");
+  document.getElementById('searchOverlay').style.display = 'block';
+  document.getElementById('searchPanel').style.display = 'flex';
+  input.focus();
+}
+function closeSearch(){
+  document.getElementById('searchOverlay').style.display = 'none';
+  document.getElementById('searchPanel').style.display = 'none';
+}
+function ejecutarResultadoBusqueda(item){
+  closeSearch();
+  navegarA(item.tab, item.year);
+}
+function marcarSeleccionBusqueda(){
+  const panel = document.getElementById('searchResults');
+  Array.from(panel.children).forEach((row, i)=>{
+    const activo = i === searchSelectedIndex;
+    row.style.background = activo ? 'var(--card2)' : 'transparent';
+    row.style.color = activo ? 'var(--accent)' : 'var(--text)';
+    row.style.fontWeight = activo ? '700' : '400';
+    if(activo) row.scrollIntoView({block:'nearest'});
+  });
+}
+function renderResultadosBusqueda(query){
+  const panel = document.getElementById('searchResults');
+  panel.innerHTML = "";
+  const q = normalizarBusqueda(query);
+  searchResultadosActuales = q ? listaDestinosBuscables().filter(item => normalizarBusqueda(item.label).includes(q)) : [];
+  searchSelectedIndex = searchResultadosActuales.length ? 0 : -1;
+  if(!q){
+    const hint = document.createElement('div');
+    hint.className = 'note';
+    hint.textContent = LANG==='en' ? 'Type to search (e.g. "June 2026", "Tarifa")... You can navigate results with ↑ ↓ and Enter.' : 'Escribe para buscar (ej. "Junio 2026", "Tarifa")... Puedes navegar los resultados con ↑ ↓ y Enter.';
+    panel.appendChild(hint);
+    return;
+  }
+  if(searchResultadosActuales.length === 0){
+    const vacio = document.createElement('div');
+    vacio.className = 'note';
+    vacio.textContent = LANG==='en' ? 'No matches found.' : 'No se encontraron resultados.';
+    panel.appendChild(vacio);
+    return;
+  }
+  searchResultadosActuales.forEach(item=>{
+    panel.appendChild(drawerRow(`${item.icono} ${item.label}`, ()=>{
+      ejecutarResultadoBusqueda(item);
+    }, {}));
+  });
+  marcarSeleccionBusqueda();
+}
+function renderDrawer(){
+  const panel = document.getElementById('drawerBody');
+  panel.innerHTML = "";
+
+  if(drawerLevel === 'root'){
+    const title = document.createElement('div');
+    title.textContent = LANG==='en' ? 'Menu' : 'Menú';
+    title.style.cssText = 'font-weight:800; font-size:1.05rem; margin-bottom:14px;';
+    panel.appendChild(title);
+
+    panel.appendChild(drawerRow(`🏠 ${LANG==='en'?'Home':'Inicio'}`, ()=>{
+      closeDrawer();
+      volverAPantallaDeInicio();
+    }, {}));
+    panel.appendChild(drawerRow(`📊 ${t('tab_resumen')}`, ()=>{
+      closeDrawer(); navegarA("Resumen Anual");
+    }, {active: currentTab==="Resumen Anual"}));
+    panel.appendChild(drawerRow(`💲 ${t('tab_tarifa')}`, ()=>{
+      closeDrawer(); navegarA("Tarifa Eléctrica");
+    }, {active: currentTab==="Tarifa Eléctrica"}));
+
+    const perfilesDivider = document.createElement('div');
+    perfilesDivider.textContent = LANG==='en' ? 'PROFILES' : 'PERFILES';
+    perfilesDivider.style.cssText = 'font-size:.7rem; color:var(--sub); text-transform:uppercase; letter-spacing:.05em; margin:16px 0 6px; font-weight:700;';
+    panel.appendChild(perfilesDivider);
+
+    PERFILES.forEach(p=>{
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex; align-items:center; gap:6px; margin-bottom:2px;';
+      const main = drawerRow(`👤 ${landingProfileLabel(p)}`, async ()=>{
+        if(PERFIL_ACTIVO !== p.id){
+          await cambiarPerfilActivo(p.id);
+          closeDrawer();
+          renderYearTabs(); renderSpecialTabs(); renderTabs(); renderContent();
+        } else {
+          closeDrawer();
+        }
+      }, {active: PERFIL_ACTIVO===p.id});
+      main.style.flex = '1';
+      row.appendChild(main);
+      const del = document.createElement('span');
+      del.textContent = '✕';
+      del.title = LANG==='en' ? `Delete profile ${landingProfileLabel(p)}` : `Borrar el perfil ${landingProfileLabel(p)}`;
+      del.style.cssText = 'padding:6px 10px; color:var(--danger); cursor:pointer; font-size:.8rem;';
+      del.onclick = async (e)=>{
+        e.stopPropagation();
+        if(!confirm(LANG==='en' ? `Delete profile "${landingProfileLabel(p)}"? This cannot be undone.` : `¿Borrar el perfil "${landingProfileLabel(p)}"? Esta acción no se puede deshacer.`)) return;
+
+        if(await perfilTieneDatos(p.id)){
+          const msgExportar = LANG==='en'
+            ? `Do you want to export a backup (JSON) of "${landingProfileLabel(p)}" before deleting it?`
+            : `¿Quieres exportar un respaldo (JSON) de "${landingProfileLabel(p)}" antes de borrarlo?`;
+          if(confirm(msgExportar)){
+            await exportarJSONDePerfil(p.id);
+            await new Promise(r=>setTimeout(r, 400));
+          }
+        }
+
+        await borrarPerfil(p.id);
+        closeDrawer();
+        volverAPantallaDeInicio();
+      };
+      row.appendChild(del);
+      panel.appendChild(row);
+    });
+    panel.appendChild(drawerRow(`+ ${LANG==='en'?'New profile':'Nuevo perfil'}`, async ()=>{
+      await nuevoPerfil();
+      currentTab = "Ajustes";
+      closeDrawer();
+      renderYearTabs(); renderSpecialTabs(); renderTabs(); renderContent();
+      const card = document.getElementById('datosClienteCard');
+      if(card) card.scrollIntoView({block:'start'});
+    }, {}));
+
+    const divider = document.createElement('div');
+    divider.textContent = LANG==='en' ? 'YEARS' : 'AÑOS';
+    divider.style.cssText = 'font-size:.7rem; color:var(--sub); text-transform:uppercase; letter-spacing:.05em; margin:16px 0 6px; font-weight:700;';
+    panel.appendChild(divider);
+
+    YEARS.forEach(year=>{
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex; align-items:center; gap:6px; margin-bottom:2px;';
+      const main = drawerRow(`🗓️ ${year}`, ()=>{
+        currentYear = year; drawerLevel = 'months'; drawerYear = year; renderDrawer();
+      }, {active: currentYear===year});
+      main.style.flex = '1';
+      row.appendChild(main);
+      if(year !== BASE_YEAR){
+        const del = document.createElement('span');
+        del.textContent = '✕';
+        del.title = LANG==='en' ? `Delete year ${year}` : `Borrar el año ${year}`;
+        del.style.cssText = 'padding:6px 10px; color:var(--danger); cursor:pointer; font-size:.8rem;';
+        del.onclick = (e)=>{ e.stopPropagation(); deleteYear(year); };
+        row.appendChild(del);
+      }
+      panel.appendChild(row);
+    });
+
+    panel.appendChild(drawerRow(`+ ${LANG==='en'?'Add year':'Agregar año'}`, async ()=>{ await addYear(); drawerLevel='root'; renderDrawer(); }, {}));
+
+  } else if(drawerLevel === 'months'){
+    const back = document.createElement('div');
+    back.textContent = `‹ ${drawerYear}`;
+    back.style.cssText = 'font-weight:800; font-size:1.05rem; margin-bottom:14px; cursor:pointer; color:var(--accent);';
+    back.onclick = ()=>{ drawerLevel = 'root'; renderDrawer(); };
+    panel.appendChild(back);
+
+    MESES.forEach(mes=>{
+      panel.appendChild(drawerRow(mesLabel(mes), ()=>{
+        closeDrawer(); navegarA(mes, drawerYear);
+      }, {active: currentTab===mes && currentYear===drawerYear}));
+    });
+  }
+}
+
+async function renderContent(){
+  const el = document.getElementById('content');
+  const pdfBtn = document.getElementById('generarPdfBtn');
+  if(pdfBtn) pdfBtn.style.display = currentTab==="Ajustes" ? "none" : "";
+  try{
+    if(currentTab==="Ajustes"){ el.innerHTML = ajustesHTML(); attachAjustesEvents(); return; }
+    if(currentTab==="Resumen Anual"){ el.innerHTML = await resumenHTML(currentYear); await resumenChart(currentYear); return; }
+    if(currentTab==="Tarifa Eléctrica"){ el.innerHTML = tarifaHTML(); return; }
+    el.innerHTML = await monthHTML(currentYear, currentTab);
+    attachMonthEvents(currentYear, currentTab);
+    await monthChart(currentYear, currentTab);
+  } catch(err){
+    console.error('Error al mostrar el contenido:', err);
+    if(el && !el.innerHTML){
+      el.innerHTML = `<div class="card"><div class="note" style="color:var(--danger);">Ocurrió un error mostrando esta sección. Si estás en una app como WhatsApp, prueba abrir el archivo con Safari (o desde el link de Claude). Detalle: ${(err && err.message) ? err.message : err}</div></div>`;
+    }
+  }
+}
+
+function ajustesHTML(){
+  return `
+  <div class="card">
+    <h2>${t('ajustes_title')}</h2>
+    <div class="note" style="margin-bottom:14px;">${t('ajustes_sub')}</div>
+
+    <label style="font-size:.78rem; color:var(--sub); display:block; margin-bottom:4px;">${t('lbl_date_format')}</label>
+    <select id="dateFormatSelect" style="margin-bottom:14px;">
+      <option value="dmy">DD/MM/AAAA (Latinoamérica, Europa)</option>
+      <option value="mdy">MM/DD/AAAA (Estados Unidos / US)</option>
+      <option value="iso">AAAA-MM-DD (ISO)</option>
+    </select>
+
+    <label style="font-size:.78rem; color:var(--sub); display:block; margin-bottom:4px;">${t('lbl_pais')}</label>
+    <select id="paisSelect" style="margin-bottom:4px;">
+      <option value="EC">Ecuador (CNEL)</option>
+      <option value="MX">México (próximamente / coming soon)</option>
+      <option value="CO">Colombia (próximamente / coming soon)</option>
+      <option value="PE">Perú (próximamente / coming soon)</option>
+      <option value="CL">Chile (próximamente / coming soon)</option>
+      <option value="AR">Argentina (próximamente / coming soon)</option>
+    </select>
+    <div class="note" style="margin-bottom:14px;">${LANG==='en' ? "Only Ecuador is fully calculated for now, based on this account's real invoices. Other countries will be added with their own official tariff structure." : "Por ahora solo Ecuador está calculado a fondo, basado en las facturas reales de esta cuenta. Los demás países se irán agregando con su propia estructura tarifaria oficial."}</div>
+
+    <label style="font-size:.78rem; color:var(--sub); display:block; margin-bottom:4px;">${t('lbl_idioma')}</label>
+    <select id="langSelect" style="margin-bottom:14px;">
+      <option value="es">Español</option>
+      <option value="en">English</option>
+    </select>
+
+    <label style="font-size:.78rem; color:var(--sub); display:block; margin-bottom:4px;">${t('lbl_tema')}</label>
+    <button id="themeToggleBtn" style="width:auto; padding:8px 14px; margin-bottom:14px; background:var(--card2); color:var(--text); border:1px solid var(--border);"></button>
+
+    <h3 style="margin-top:10px;">${LANG==='en'?'Backup':'Respaldo'}</h3>
+    <div class="note" style="margin-bottom:10px;">${LANG==='en' ? "Export all your data to a file, or restore a previous backup." : "Exporta todos tus datos a un archivo, o restaura un respaldo anterior."}</div>
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <button id="exportarJsonBtn" style="width:auto; padding:8px 14px; background:var(--card2); color:var(--text); border:1px solid var(--border);"></button>
+      <button id="importarJsonBtn" style="width:auto; padding:8px 14px; background:var(--card2); color:var(--text); border:1px solid var(--border);"></button>
+      <input type="file" id="importarJsonFile" accept="application/json" style="display:none;">
+      <button id="exportarCsvBtn" style="width:auto; padding:8px 14px; background:var(--card2); color:var(--text); border:1px solid var(--border);">${LANG==='en'?'📊 Generate Excel':'📊 Generar Excel'}</button>
+    </div>
+    <div class="note" style="margin-top:6px;">${LANG==='en' ? `Generates the Excel file only for the year you have selected: <b>${currentYear}</b> (change it with the year tabs above).` : `Genera el Excel solo del año en el que estás parado: <b>${currentYear}</b> (cámbialo con las pestañas de año de arriba).`}</div>
+  </div>
+
+  <div class="card" id="datosClienteCard">
+    <h2>${LANG==='en' ? 'Client Data' : 'Datos del Cliente'}</h2>
+    <div class="note" style="margin-bottom:12px;">${LANG==='en' ? "This information appears on the Ficha del Cliente card and on your PDF/Excel reports." : "Esta información aparece en la Ficha del Cliente y en tus reportes de PDF/Excel."}</div>
+
+    ${PERFILES.length > 1 ? `
+    <label style="font-size:.78rem; color:var(--sub); display:block; margin-bottom:4px;">${LANG==='en'?'Profile / account':'Perfil / cuenta'}</label>
+    <select id="perfilSelect" style="margin-bottom:12px;">
+      ${PERFILES.map(p => `<option value="${p.id}">${(p.nombre||p.cuenta||p.id)}</option>`).join('')}
+    </select>` : ''}
+
+    <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">${LANG==='en'?'Full name':'Nombre completo'}</label>
+    <input type="text" id="clienteNombre" class="cliente-field" value="${CLIENTE.nombre||''}" style="width:100%; margin-bottom:10px; padding:8px 10px; border-radius:6px; border:1px solid var(--border); background:var(--card2); color:var(--text);">
+
+    <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">${LANG==='en'?'ID number (cédula)':'Cédula'}</label>
+    <input type="text" id="clienteCedula" class="cliente-field" value="${CLIENTE.cedula||''}" style="width:100%; margin-bottom:10px; padding:8px 10px; border-radius:6px; border:1px solid var(--border); background:var(--card2); color:var(--text);">
+
+    <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">${LANG==='en'?'Address':'Dirección'}</label>
+    <input type="text" id="clienteDireccion" class="cliente-field" value="${CLIENTE.direccion||''}" style="width:100%; margin-bottom:10px; padding:8px 10px; border-radius:6px; border:1px solid var(--border); background:var(--card2); color:var(--text);">
+
+    <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">${LANG==='en'?'Account number':'Cuenta Contrato'}</label>
+    <input type="text" id="clienteCuenta" class="cliente-field" value="${CLIENTE.cuenta||''}" style="width:100%; margin-bottom:10px; padding:8px 10px; border-radius:6px; border:1px solid var(--border); background:var(--card2); color:var(--text);">
+
+    <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">${LANG==='en'?'Meter number':'Medidor No.'}</label>
+    <input type="text" id="clienteMedidor" class="cliente-field" value="${CLIENTE.medidor||''}" style="width:100%; margin-bottom:14px; padding:8px 10px; border-radius:6px; border:1px solid var(--border); background:var(--card2); color:var(--text);">
+
+    <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">${t('lbl_tercera_edad')}</label>
+    <select id="terceraEdadSelect" style="margin-bottom:14px;">
+      <option value="true">${LANG==='en'?'Yes':'Sí'}</option>
+      <option value="false">No</option>
+    </select>
+
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button id="guardarClienteBtn" style="width:auto; padding:8px 14px;">${LANG==='en'?'Save data':'Guardar datos'}</button>
+      <button id="nuevoPerfilBtn" style="width:auto; padding:8px 14px; background:var(--card2); color:var(--text); border:1px solid var(--border);">${LANG==='en'?'+ New property/account':'+ Nueva propiedad/cuenta'}</button>
+      <button id="borrarPerfilBtn" style="width:auto; padding:8px 14px; background:var(--card2); color:var(--danger); border:1px solid var(--border);">${LANG==='en'?'Delete this profile':'Borrar este perfil'}</button>
+    </div>
+    <div class="note" id="clienteIncompletoNote" style="margin-top:8px; color:#e8b169; display:none;">${LANG==='en' ? "Fill in all fields above to save or create a new profile." : "Llena todos los campos de arriba para poder guardar o crear un nuevo perfil."}</div>
+    <div class="note" style="margin-top:8px;">${LANG==='en' ? "Each profile has its own completely separate data — years, months, readings, invoices, everything. Switching profiles is like opening a whole different account." : "Cada perfil tiene sus propios datos completamente separados — años, meses, lecturas, facturas, todo. Cambiar de perfil es como abrir una cuenta totalmente distinta."}</div>
+  </div>
+
+  <div class="card">
+    <h2>${LANG==='en' ? 'Account' : 'Cuenta'}</h2>
+    ${FIREBASE_UID ? `
+      <div class="note" style="margin-bottom:10px;">${LANG==='en' ? 'Signed in as' : 'Sesión iniciada como'}: <b>${firebase.auth().currentUser ? firebase.auth().currentUser.email : ''}</b>. ${LANG==='en' ? 'Your data is saved in the cloud and synced across devices.' : 'Tus datos están guardados en la nube y sincronizados entre dispositivos.'}</div>
+      <button id="cerrarSesionBtn" style="width:auto; padding:8px 14px; background:var(--card2); color:var(--danger); border:1px solid var(--border);">${LANG==='en' ? 'Sign out' : 'Cerrar sesión'}</button>
+    ` : `
+      <div class="note" style="margin-bottom:10px;">${LANG==='en' ? "You're using this app without an account — your data only lives on this device. Sign in to sync it across devices." : 'Estás usando la app sin cuenta — tus datos solo viven en este dispositivo. Inicia sesión para verlos desde cualquier lugar.'}</div>
+      <button id="irALoginBtn" style="width:auto; padding:8px 14px; background:var(--accent); color:#fff; border:none;">${LANG==='en' ? 'Sign in / Create account' : 'Iniciar sesión / Crear cuenta'}</button>
+    `}
+  </div>
+
+  <div class="card">
+    <h2>${LANG==='en' ? 'Before Sharing This App' : 'Antes de Compartir Esta App'}</h2>
+    <div class="note" style="margin-bottom:12px;">${LANG==='en'
+      ? "Your data lives in this browser, not inside the file itself — so if you send the .html file to someone else's device, they normally won't see your data at all. But if you want to be 100% sure (e.g. sharing from the same device/browser), this wipes every profile and all their data, leaving the app completely blank."
+      : "Tus datos viven en este navegador, no dentro del archivo — así que si envías el .html a otro dispositivo, esa persona normalmente no vería tus datos para nada. Pero si quieres estar 100% seguro (ej. si lo compartes desde el mismo dispositivo/navegador), esto borra todos los perfiles y sus datos, dejando la app completamente en blanco."}</div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button id="borrarTodoBtn" style="width:auto; padding:8px 14px; background:var(--card2); color:var(--danger); border:1px solid var(--border);">${LANG==='en' ? '🗑️ Wipe everything (leave app blank)' : '🗑️ Borrar todo (dejar la app en blanco)'}</button>
+      <button id="compartirAppBtnAjustes" style="width:auto; padding:8px 14px; background:var(--card2); color:var(--text); border:1px solid var(--border);">${LANG==='en' ? '📤 Share this app' : '📤 Compartir esta app'}</button>
+    </div>
+  </div>`;
+}
+
+function attachAjustesEvents(){
+  const cerrarSesionBtn = document.getElementById('cerrarSesionBtn');
+  if(cerrarSesionBtn) cerrarSesionBtn.addEventListener('click', cerrarSesion);
+  const irALoginBtn = document.getElementById('irALoginBtn');
+  if(irALoginBtn){
+    irALoginBtn.addEventListener('click', ()=>{
+      try{ localStorage.removeItem('modo_sin_cuenta'); }catch(e){}
+      location.reload();
+    });
+  }
+
+  const sel = document.getElementById('dateFormatSelect');
+  sel.value = DATE_FORMAT;
+  sel.addEventListener('change', async ()=>{ await saveDateFormat(sel.value); });
+
+  const selEdad = document.getElementById('terceraEdadSelect');
+  selEdad.value = String(ES_TERCERA_EDAD);
+  selEdad.addEventListener('change', async ()=>{ await saveTerceraEdad(selEdad.value==='true'); });
+
+  const selPais = document.getElementById('paisSelect');
+  selPais.value = PAIS;
+  selPais.addEventListener('change', async ()=>{ await savePais(selPais.value); });
+
+  const selLang = document.getElementById('langSelect');
+  selLang.value = LANG;
+  selLang.addEventListener('change', async ()=>{
+    const valoresSinGuardar = {};
+    document.querySelectorAll('.cliente-field').forEach(inp => { valoresSinGuardar[inp.id] = inp.value; });
+    await saveLang(selLang.value);
+    actualizarTitulos();
+    renderSpecialTabs(); renderTabs(); renderYearTabs(); renderContent();
+    Object.keys(valoresSinGuardar).forEach(id => {
+      const inp = document.getElementById(id);
+      if(inp) inp.value = valoresSinGuardar[id];
+    });
+  });
+
+  const themeBtn = document.getElementById('themeToggleBtn');
+  themeBtn.textContent = THEME === 'light' ? t('theme_light') : t('theme_dark');
+  themeBtn.addEventListener('click', async ()=>{
+    await saveTheme(THEME==='light'?'dark':'light');
+    themeBtn.textContent = THEME === 'light' ? t('theme_light') : t('theme_dark');
+  });
+
+  const expBtn = document.getElementById('exportarJsonBtn');
+  expBtn.textContent = t('btn_export');
+  expBtn.addEventListener('click', exportarJSON);
+
+  const impBtn = document.getElementById('importarJsonBtn');
+  impBtn.textContent = t('btn_import');
+  const impFile = document.getElementById('importarJsonFile');
+  impBtn.addEventListener('click', ()=> impFile.click());
+  impFile.addEventListener('change', async (e)=>{
+    if(e.target.files.length) await importarJSON(e.target.files[0]);
+    e.target.value = "";
+  });
+
+  document.getElementById('exportarCsvBtn').addEventListener('click', exportarExcel);
+
+  const perfilSelect = document.getElementById('perfilSelect');
+  if(perfilSelect){
+    perfilSelect.value = PERFIL_ACTIVO;
+    perfilSelect.addEventListener('change', async ()=>{
+      await cambiarPerfilActivo(perfilSelect.value);
+      renderYearTabs(); renderSpecialTabs(); renderTabs(); renderContent();
+    });
+  }
+
+  const camposCliente = Array.from(document.querySelectorAll('.cliente-field'));
+  const guardarClienteBtn = document.getElementById('guardarClienteBtn');
+  const nuevoPerfilBtn = document.getElementById('nuevoPerfilBtn');
+  const notaIncompleto = document.getElementById('clienteIncompletoNote');
+
+  function validarCamposCliente(){
+    const completos = camposCliente.every(inp => inp.value.trim() !== '');
+    guardarClienteBtn.disabled = !completos;
+    nuevoPerfilBtn.disabled = !completos;
+    guardarClienteBtn.style.opacity = completos ? '1' : '.5';
+    nuevoPerfilBtn.style.opacity = completos ? '1' : '.5';
+    guardarClienteBtn.style.cursor = completos ? 'pointer' : 'not-allowed';
+    nuevoPerfilBtn.style.cursor = completos ? 'pointer' : 'not-allowed';
+    if(notaIncompleto) notaIncompleto.style.display = completos ? 'none' : 'block';
+    return completos;
+  }
+  camposCliente.forEach((inp, idx)=>{
+    inp.addEventListener('input', validarCamposCliente);
+    inp.addEventListener('keydown', (e)=>{
+      if(e.key !== 'Enter') return;
+      e.preventDefault();
+      const next = camposCliente[idx+1];
+      if(next){ next.focus(); next.select(); }
+      else if(validarCamposCliente()){ guardarClienteBtn.click(); }
+    });
+  });
+  validarCamposCliente();
+
+  guardarClienteBtn.addEventListener('click', async ()=>{
+    if(!validarCamposCliente()) return;
+    await actualizarClienteActivo({
+      nombre: document.getElementById('clienteNombre').value,
+      cedula: document.getElementById('clienteCedula').value,
+      direccion: document.getElementById('clienteDireccion').value,
+      cuenta: document.getElementById('clienteCuenta').value,
+      medidor: document.getElementById('clienteMedidor').value,
+    });
+    navegarA("Resumen Anual");
+  });
+  nuevoPerfilBtn.addEventListener('click', async ()=>{
+    if(!validarCamposCliente()) return;
+    await nuevoPerfil();
+    renderYearTabs(); renderSpecialTabs(); renderTabs(); renderContent();
+    const card = document.getElementById('datosClienteCard');
+    if(card) card.scrollIntoView({block:'start'});
+  });
+  const borrarPerfilBtn = document.getElementById('borrarPerfilBtn');
+  if(borrarPerfilBtn){
+    borrarPerfilBtn.addEventListener('click', async ()=>{
+      if(!confirm(LANG==='en' ? 'Delete this profile? This cannot be undone.' : '¿Borrar este perfil? Esta acción no se puede deshacer.')) return;
+
+      if(await perfilTieneDatos(PERFIL_ACTIVO)){
+        const msgExportar = LANG==='en'
+          ? 'Do you want to export a backup (JSON) of this profile before deleting it?'
+          : '¿Quieres exportar un respaldo (JSON) de este perfil antes de borrarlo?';
+        if(confirm(msgExportar)){
+          await exportarJSON();
+          await new Promise(r=>setTimeout(r, 400));
+        }
+      }
+
+      await borrarPerfil(PERFIL_ACTIVO);
+      volverAPantallaDeInicio();
+    });
+  }
+  const borrarTodoBtn = document.getElementById('borrarTodoBtn');
+  if(borrarTodoBtn){
+    borrarTodoBtn.addEventListener('click', async ()=>{
+      const msg1 = LANG==='en'
+        ? 'This will permanently delete EVERY profile and all their data (years, readings, invoices, client info). This cannot be undone. Continue?'
+        : 'Esto borrará PERMANENTEMENTE todos los perfiles y todos sus datos (años, lecturas, facturas, datos del cliente). No se puede deshacer. ¿Continuar?';
+      if(!confirm(msg1)) return;
+      const msg2 = LANG==='en' ? 'Are you sure? This is your last chance to cancel.' : '¿Estás seguro? Esta es tu última oportunidad para cancelar.';
+      if(!confirm(msg2)) return;
+      await borrarTodoParaCompartir();
+      volverAPantallaDeInicio();
+    });
+  }
+  const compartirBtnAjustes = document.getElementById('compartirAppBtnAjustes');
+  if(compartirBtnAjustes){
+    compartirBtnAjustes.addEventListener('click', iniciarFlujoCompartir);
+  }
+}
+
+function irAMesDesdeResumen(year, mes){
+  navegarA(mes, year);
+}
+
+async function resumenHTML(year){
+  const esDefault = PERFIL_ACTIVO === 'default';
+  const facturados = (esDefault && year===BASE_YEAR) ? MESES.filter(m => !!DATA[m]) : [];
+  const pendientes = MESES.filter(m => !(esDefault && year===BASE_YEAR && DATA[m]));
+  let rows = "";
+  let diasRows = "";
+  let totalReal = 0;
+  let totalDias = 0;
+  const comparacion = []; // {mes, real, estimado}
+  for(const mes of MESES){
+    const c = await computeMonth(year, mes);
+    const lectIni = c.rows[0]?.lectura;
+    const lectFin = c.rows[c.rows.length-1]?.lectura;
+    const dias = c.rows.length - 1;
+    totalDias += dias;
+    const desde = c.rows[0]?.fecha;
+    const hasta = c.rows[c.rows.length-1]?.fecha;
+    const subsidioExtra = await loadSubsidioExtra(year, mes);
+    const consumoReal = c.hist ? DATA[mes].consumo : c.consumoIngresado;
+    const simSiempre = consumoReal > 0 ? simulador(consumoReal, subsidioExtra) : null;
+    let totalFactura, origen, estado, realParaComparar = null;
+    if(c.hist){
+      const real = facturaReal(mes);
+      totalFactura = real.totalFactura;
+      origen = t('real_cnel');
+      realParaComparar = real.totalFactura;
+      if(c.rows.filter(r=>r.lectura!==null).length<2) estado=t('faltan_lecturas');
+      else if(Math.abs(c.consumoIngresado - DATA[mes].consumo) < 0.5) estado=t('coincide');
+      else estado=t('verificar');
+      totalReal += totalFactura;
+    } else {
+      const manual = await loadFacturaManual(year, mes);
+      if(manual.total!==null && manual.total!==undefined){
+        totalFactura = manual.total;
+        origen = t('real_manual');
+        estado = Math.abs(c.consumoIngresado - (manual.consumo||0)) < 0.5 ? t('coincide') : t('verificar');
+        totalReal += totalFactura;
+        realParaComparar = manual.total;
+      } else {
+        totalFactura = simSiempre ? simSiempre.totalFactura : null;
+        origen = t('estimado');
+        estado = c.consumoIngresado>0 ? (LANG==='en'?"Estimate in progress":"Estimado en curso") : t('pendiente');
+      }
+    }
+    if(realParaComparar!==null || simSiempre){
+      comparacion.push({mes, real: realParaComparar, estimado: simSiempre ? simSiempre.totalFactura : null});
+    }
+    rows += `<tr>
+      <td>${mesLabel(mes)}</td>
+      <td>${lectIni!==undefined&&lectIni!==null ? lectIni.toFixed(2) : "-"}</td>
+      <td>${lectFin!==undefined&&lectFin!==null ? lectFin.toFixed(2) : "-"}</td>
+      <td>${kwh(consumoReal)}</td>
+      <td><span class="badge">${origen}</span></td>
+      <td>${money(totalFactura)}</td>
+      <td>${estado}</td>
+    </tr>`;
+    diasRows += `<tr>
+      <td><button onclick="irAMesDesdeResumen(${year}, '${mes}')" style="background:none; border:none; padding:0; margin:0; color:inherit; text-decoration:underline; cursor:pointer; font:inherit; text-align:left;">${mesLabel(mes)}</button></td>
+      <td>${dias} ${LANG==='en'?'days':'días'}</td>
+      <td>${fmtDate(desde)} a ${fmtDate(hasta)}</td>
+      <td><span class="badge">${origen}</span></td>
+    </tr>`;
+  }
+  return `
+  <div class="card">
+    <h2>${LANG==='en'?'Client Info':'Ficha del Cliente'}</h2>
+    <div class="kv"><span>${LANG==='en'?'Name':'Nombre'}</span><span class="v">${CLIENTE.nombre||"-"}</span></div>
+    <div class="kv"><span>${LANG==='en'?'ID (cédula)':'Cédula'}</span><span class="v">${CLIENTE.cedula||"-"}</span></div>
+    <div class="kv"><span>${LANG==='en'?'Address':'Dirección'}</span><span class="v">${CLIENTE.direccion||"-"}</span></div>
+    <div class="kv"><span>${LANG==='en'?'Account':'Cuenta Contrato'}</span><span class="v blue">${CLIENTE.cuenta||"-"}</span></div>
+    <div class="kv"><span>${LANG==='en'?'Meter No.':'Medidor No.'}</span><span class="v">${CLIENTE.medidor||"-"}</span></div>
+    ${PERFILES.length > 1 ? `<div class="note" style="margin-top:8px;">${LANG==='en'?'Edit or switch profiles in Settings.':'Edita o cambia de perfil desde Ajustes.'}</div>` : ""}
+  </div>
+  <div class="card">
+    <h2>Meses Facturados — ${year}</h2>
+    <div class="kv"><span>Meses con factura real</span><span class="v blue">${facturados.length ? facturados.join(", ") : "Ninguno todavía"}</span></div>
+    <div class="kv"><span>Meses aún sin facturar (estimado)</span><span class="v">${pendientes.join(", ")}</span></div>
+  </div>
+  <div class="card">
+    <h2>Días Facturados por Mes</h2>
+    <div style="overflow-x:auto;">
+    <table>
+      <tr><th>Mes</th><th>Días</th><th>Periodo</th><th>Origen</th></tr>
+      ${diasRows}
+    </table>
+    </div>
+    <div class="note">Para los meses con factura real, los días vienen del periodo exacto de la factura (fecha desde/hasta). Para los meses estimados, se calcula con un ciclo de 30 días encadenado desde el fin del último mes facturado (o desde la fecha de corte que hayas ajustado). Este número es el mismo que ves en "Días con consumo calculado" dentro de cada mes.</div>
+    <div class="kv totalrow" style="margin-top:10px;"><span>Total de días calculados (los 12 meses de ${year})</span><span class="v">${totalDias} días</span></div>
+    <div class="note">Este total no da 365 por dos razones normales: (1) cada mes resta el día de arranque, que no genera consumo propio; y (2) los periodos siguen tus ciclos reales de facturación, no el año calendario — por eso el año "${year}" en esta app empieza y termina unos días antes/después del 1 de enero y 31 de diciembre.</div>
+  </div>
+  <div class="card">
+    <h2>${t('tab_resumen')} ${year}</h2>
+    <div style="overflow-x:auto;">
+    <table>
+      <tr><th>${LANG==='en'?'Month':'Mes'}</th><th>${t('lect_ini')}</th><th>${t('lect_fin')}</th><th>${t('consumo')}</th><th>${t('origen')}</th><th>${t('total_factura')}</th><th>${t('estado')}</th></tr>
+      ${rows}
+    </table>
+    </div>
+    <div class="kv totalrow" style="margin-top:10px;"><span>${LANG==='en'?'Total real billed':'Total facturado real'}</span><span class="v">${money(totalReal)}</span></div>
+  </div>
+  <div class="card"><h2>Consumo mensual (kWh)</h2><div style="position:relative; height:220px;"><canvas id="resumenChart"></canvas></div></div>
+  <div class="card">
+    <h2>Real vs. Estimado ($)</h2>
+    ${comparacion.length ? `<div style="position:relative; height:220px;"><canvas id="comparacionChart"></canvas></div><div class="note">Compara, mes a mes, lo que realmente se facturó (o lo que ingresaste manualmente) contra lo que el Simulador habría calculado con la misma cantidad de kWh. Sirve para ver qué tan preciso es el Simulador.</div>` : `<div class="note">Aún no hay suficientes datos para comparar.</div>`}
+  </div>
+  <div class="card">
+    <h2>Comparación Año Contra Año (kWh)</h2>
+    ${YEARS.length > 1 ? `<div style="position:relative; height:220px;"><canvas id="yearOverYearChart"></canvas></div><div class="note">Compara el consumo de cada mes entre los distintos años que tienes en la app (ej. Julio-${YEARS[0]} vs. Julio-${YEARS[1]}).</div>` : `<div class="note">Todavía solo tienes el año ${year}. Agrega otro año (arriba, "+ Agregar año") para ver esta comparación.</div>`}
+  </div>
+  `;
+}
+async function resumenChart(year){
+  destroyChart('resumenChart');
+  const labels=[], data=[];
+  const compLabels=[], compReal=[], compEst=[];
+  for(const mes of MESES){
+    const c = await computeMonth(year, mes);
+    const consumoReal = c.hist ? DATA[mes].consumo : c.consumoIngresado;
+    labels.push(mesLabel(mes).slice(0,3));
+    data.push(consumoReal || 0);
+    const subsidioExtra = await loadSubsidioExtra(year, mes);
+    const sim = consumoReal > 0 ? simulador(consumoReal, subsidioExtra) : null;
+    let real = null;
+    if(c.hist) real = facturaReal(mes).totalFactura;
+    else { const manual = await loadFacturaManual(year, mes); if(manual.total!=null) real = manual.total; }
+    compLabels.push(mesLabel(mes).slice(0,3));
+    compReal.push(real!==null ? +real.toFixed(2) : null);
+    compEst.push(sim ? +sim.totalFactura.toFixed(2) : null);
+  }
+  try{
+    const ctx = document.getElementById('resumenChart');
+    charts['resumenChart'] = new Chart(ctx, {
+      type:'bar',
+      data:{labels, datasets:[{label:'kWh', data, backgroundColor:'#4f8ff0', borderRadius:4}]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#93a3b8'}, grid:{display:false}}, y:{ticks:{color:'#93a3b8'}, grid:{color:'#2a3849'}} } }
+    });
+    destroyChart('comparacionChart');
+    const compCtx = document.getElementById('comparacionChart');
+    if(compCtx){
+      charts['comparacionChart'] = new Chart(compCtx, {
+        type:'bar',
+        data:{ labels: compLabels, datasets:[
+          {label:'Real / Ingresado', data: compReal, backgroundColor:'#4f8ff0'},
+          {label:'Estimado (Simulador)', data: compEst, backgroundColor:'#7bd88f'}
+        ]},
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:true, labels:{color:'#93a3b8'}}}, scales:{ x:{ticks:{color:'#93a3b8'}, grid:{display:false}}, y:{ticks:{color:'#93a3b8'}, grid:{color:'#2a3849'}} } }
+      });
+    }
+
+    destroyChart('yearOverYearChart');
+    const yoyCtx = document.getElementById('yearOverYearChart');
+    if(yoyCtx && YEARS.length > 1){
+      const yoyLabels = MESES.map(m => mesLabel(m).slice(0,3));
+      const palette = ['#4f8ff0','#7bd88f','#f0716f','#e8b169','#a78bfa','#38bdf8'];
+      const datasets = [];
+      for(let i=0;i<YEARS.length;i++){
+        const y = YEARS[i];
+        const yData = [];
+        for(const mes of MESES){
+          const cy = await computeMonth(y, mes);
+          const consumoRealY = cy.hist ? DATA[mes].consumo : cy.consumoIngresado;
+          yData.push(+((consumoRealY)||0).toFixed(1));
+        }
+        datasets.push({label:String(y), data:yData, backgroundColor: palette[i % palette.length]});
+      }
+      charts['yearOverYearChart'] = new Chart(yoyCtx, {
+        type:'bar',
+        data:{ labels: yoyLabels, datasets },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:true, labels:{color:'#93a3b8'}}}, scales:{ x:{ticks:{color:'#93a3b8'}, grid:{display:false}}, y:{ticks:{color:'#93a3b8'}, grid:{color:'#2a3849'}} } }
+      });
+    }
+  } catch(err){
+    console.error('No se pudieron dibujar las gráficas (¿sin conexión a internet para cargar Chart.js?):', err);
+  }
+}
+
+function tarifaHTML(){
+  const {tarifaProm, subsidioProm, alumbradoProm} = tarifaPromedios();
+  let histRows = "";
+  HIST_MESES.forEach(m=>{
+    const d = DATA[m];
+    histRows += `<tr>
+      <td>${m}</td><td>${kwh(d.consumo)}</td><td>${money(d.valor_consumo)}</td>
+      <td>${rate(d.valor_consumo/d.consumo)}</td>
+      <td>${money(d.subsidio_cruzado)}</td><td>${rate(d.subsidio_cruzado/d.consumo)}</td>
+      <td>${money(d.alumbrado)}</td><td>${rate(d.alumbrado/d.consumo)}</td>
+    </tr>`;
+  });
+  return `
+  <div class="card">
+    <h2>Tarifa Eléctrica de Ecuador aplicada a esta cuenta</h2>
+    <div class="estado pend">⚠️ Los promedios de esta página se calcularon <b>una sola vez</b> con las 6 primeras facturas reales (Enero-Junio 2026) y <b>no cambian</b> aunque agregues o factures más meses — son la base fija que usa el Simulador para todos los meses futuros.</div>
+    <h3>Componentes fijos (no dependen del kWh)</h3>
+    <div class="kv"><span>Comercialización mensual</span><span class="v blue">${money(FIXED.comercial)}</span></div>
+    <div class="kv"><span>Contribución Bomberos Durán</span><span class="v blue">${money(FIXED.bomberos)}</span></div>
+    ${ES_TERCERA_EDAD ? `<div class="kv"><span>Subsidio Ley Adulto Mayor (se resta)</span><span class="v blue">${money(SUBSIDIO_ADULTO_MONTO)}</span></div>` : `<div class="note">Este perfil no está marcado como Adulto Mayor, así que no se aplica el subsidio de Ley Adulto Mayor. Puedes cambiar esto en Ajustes → Datos del Cliente.</div>`}
+    <div class="kv"><span>I.V.A. aplicable</span><span class="v blue">${FIXED.iva*100}%</span></div>
+
+    <h3>Histórico real (fuente para calcular promedios)</h3>
+    <div style="overflow-x:auto;">
+    <table>
+      <tr><th>Mes</th><th>Consumo</th><th>Valor Consumo</th><th>Tarifa $/kWh</th><th>Sub. Cruzado</th><th>$/kWh</th><th>Alumbrado</th><th>$/kWh</th></tr>
+      ${histRows}
+    </table>
+    </div>
+
+    <h3>Promedios usados en el Simulador</h3>
+    <div class="kv"><span>Tarifa energía promedio</span><span class="v">${rate(tarifaProm)} /kWh</span></div>
+    <div class="kv"><span>Subsidio Cruzado promedio</span><span class="v">${rate(subsidioProm)} /kWh</span></div>
+    <div class="kv"><span>Alumbrado Público promedio</span><span class="v">${rate(alumbradoProm)} /kWh</span></div>
+
+    <h3>Referencia oficial (Pliego Tarifario Ecuador 2026)</h3>
+    <div class="kv"><span>Tarifa Dignidad (hasta 130 kWh/mes, Costa)</span><span class="v blue">$0.0400 /kWh</span></div>
+    <div class="kv"><span>Tarifa Residencial promedio nacional 2026</span><span class="v blue">$0.1061 /kWh</span></div>
+    <div class="note">Esta cuenta consume siempre más de 130 kWh/mes, por lo que NO aplica la Tarifa Dignidad. Por eso el Simulador usa el promedio real observado en tus 6 facturas en vez de una tarifa fija única.<br>Fuente: Pliego Tarifario del Servicio Público de Energía Eléctrica 2026, Resolución ARCONEL-029-2025 (ARCERNNR); facturas de esta cuenta Ene-Jun 2026.</div>
+  </div>`;
+}
+
+let ULTIMO_ANALISIS_MES = null;
+
+async function buildStatsSections(year, mes){
+  const c = await computeMonth(year, mes);
+  const hist = c.hist;
+  const manual = hist ? {consumo:null,total:null} : await loadFacturaManual(year, mes);
+  const subsidioExtra = await loadSubsidioExtra(year, mes);
+  const meta = await loadMeta(year, mes);
+  const analisis = analizarMes(c, subsidioExtra);
+  ULTIMO_ANALISIS_MES = analisis;
+  const comparacionMes = await compararConMesAnterior(year, mes, analisis.diasTranscurridos);
+
+  const tieneFacturaManual = manual.total!==null && manual.total!==undefined;
+  let verifHTML = `
+    <div class="summary-grid">
+      <div class="stat"><div class="num">${c.consumoIngresado.toFixed(0)}</div><div class="lbl">${t('kwh_ingresados')}</div></div>
+      <div class="stat"><div class="num">${hist ? DATA[mes].consumo : (manual.consumo ?? "-")}</div><div class="lbl">${t('kwh_facturados_real')}</div></div>
+    </div>`;
+  let estado;
+  if(hist){
+    if(c.rows.filter(r=>r.lectura!==null).length < 2) estado = {cls:"pend", txt:"Faltan lecturas por ingresar"};
+    else if(Math.abs(c.consumoIngresado - DATA[mes].consumo) < 0.5) estado = {cls:"ok", txt:"✓ Coincide con la factura real"};
+    else estado = {cls:"pend", txt:`Diferencia de ${(c.consumoIngresado-DATA[mes].consumo).toFixed(1)} kWh — revisa tus lecturas`};
+  } else if(tieneFacturaManual && manual.consumo!==null){
+    if(Math.abs(c.consumoIngresado - manual.consumo) < 0.5) estado = {cls:"ok", txt:"✓ Coincide con la factura que ingresaste"};
+    else estado = {cls:"pend", txt:`Diferencia de ${(c.consumoIngresado-manual.consumo).toFixed(1)} kWh — revisa tus lecturas`};
+  } else {
+    estado = {cls:"pend", txt: c.consumoIngresado>0 ? "Sin factura real todavía — acumulando lecturas" : "Ingresa tus lecturas diarias"};
+  }
+  verifHTML += `<div class="estado ${estado.cls}">${estado.txt}</div>`;
+
+  let realHTML = "";
+  if(hist){
+    const real = facturaReal(mes);
+    realHTML = `
+    <h3>Facturación Real</h3>
+    <div class="kv"><span>Valor Consumo</span><span class="v blue">${money(real.valor_consumo)}</span></div>
+    <div class="kv"><span>Comercialización</span><span class="v blue">${money(real.comercial)}</span></div>
+    <div class="kv"><span>Subsidio Cruzado Solidario (+)</span><span class="v blue">${money(real.subsidio_cruzado)}</span></div>
+    <div class="kv"><span>Subsidio Adulto Mayor (-)</span><span class="v blue">${money(-real.subsidio_adulto)}</span></div>
+    ${real.compensacion ? `<div class="kv"><span>Compensación D.E. 379 (-)</span><span class="v blue">${money(-real.compensacion)}</span></div>` : ""}
+    <div class="kv"><span>Subtotal Servicio Eléctrico</span><span class="v">${money(real.subtotalSE)}</span></div>
+    <div class="kv"><span>Alumbrado Público</span><span class="v blue">${money(real.alumbrado)}</span></div>
+    <div class="kv"><span>Total SE y AP</span><span class="v">${money(real.totalSEAP)}</span></div>
+    <div class="kv"><span>Bomberos</span><span class="v blue">${money(real.bomberos)}</span></div>
+    <div class="kv totalrow"><span>VALOR TOTAL FACTURA</span><span class="v">${money(real.totalFactura)}</span></div>`;
+  } else {
+    realHTML = `
+    <h3>Valor Obtenido de la Factura</h3>
+    <div class="note" style="margin-top:0;">Cuando te llegue la factura de este mes, ingresa aquí sus datos para compararlos con lo que anotaste tú.</div>
+    <label style="font-size:.75rem; color:var(--sub); display:block; margin:8px 0 3px;">Consumo facturado (kWh)</label>
+    <input type="number" step="0.01" id="facturaManualConsumo" value="${manual.consumo ?? ''}" placeholder="Ej: 900" style="width:150px;">
+    <label style="font-size:.75rem; color:var(--sub); display:block; margin:8px 0 3px;">Valor total de la factura ($)</label>
+    <input type="number" step="0.01" id="facturaManualTotal" value="${manual.total ?? ''}" placeholder="Ej: 105.30" style="width:150px;">
+    <button id="guardarFacturaManualBtn" style="margin-top:10px;">Guardar factura</button>
+    ${tieneFacturaManual ? `
+    <div class="kv totalrow" style="margin-top:12px;"><span>Valor obtenido de la factura</span><span class="v blue">${money(manual.total)}</span></div>
+    <div class="kv"><span>Consumo ingresado manualmente</span><span class="v">${kwh(c.consumoIngresado)}</span></div>
+    ` : ""}`;
+  }
+
+  const sim = simulador(c.consumoIngresado, subsidioExtra);
+  let simHTML = `<h3>Simulador con Tarifa Referencial</h3>`;
+  simHTML += `
+    <label style="font-size:.75rem; color:var(--sub); display:block; margin:2px 0 3px;">Subsidio / compensación extraordinaria del Gobierno este mes ($, se resta del total)</label>
+    <input type="number" step="0.01" id="subsidioExtraInput" value="${subsidioExtra || ''}" placeholder="0.00">
+    <button id="guardarSubsidioBtn" style="margin-top:8px; margin-bottom:8px;">Aplicar</button>
+    <div class="note" style="margin-bottom:10px;">Este campo normalmente lo dejas vacío. Solo si el Gobierno anuncia alguna compensación especial en tu factura de ese mes (como pasó en Mayo con el Decreto 379), ingresa aquí ese monto para que se reste del total estimado.</div>`;
+  if(!sim){
+    simHTML += `<div class="note">Ingresa lecturas para ver la estimación.</div>`;
+  } else {
+    simHTML += `
+    <div class="kv"><span>Consumo del periodo</span><span class="v green">${kwh(c.consumoIngresado)}</span></div>
+    ${sim.esDignidad ? `<div class="note" style="color:var(--ok); margin:4px 0 8px;">✅ Este mes consumió ${DIGNIDAD_KWH} kWh o menos, así que se aplicó la Tarifa de la Dignidad (más barata) en vez del promedio normal.</div>` : ""}
+    <div class="kv"><span>${sim.esDignidad ? "Tarifa de la Dignidad aplicada" : "Tarifa energía promedio"}</span><span class="v green">${rate(sim.tarifaProm)}/kWh</span></div>
+    <div class="kv"><span>Valor Consumo estimado</span><span class="v">${money(sim.valorConsumo)}</span></div>
+    <div class="kv"><span>Comercialización</span><span class="v green">${money(FIXED.comercial)}</span></div>
+    <div class="kv"><span>Subsidio Cruzado estimado (+)</span><span class="v">${money(sim.subsidioCruzado)}</span></div>
+    <div class="kv"><span>Subsidio Adulto Mayor (-)</span><span class="v green">${money(-FIXED.subsidio_adulto)}</span></div>
+    <div class="kv"><span>Subtotal SE</span><span class="v">${money(sim.subtotalSE)}</span></div>
+    <div class="kv"><span>Alumbrado Público estimado</span><span class="v">${money(sim.alumbrado)}</span></div>
+    <div class="kv"><span>Total SE y AP estimado</span><span class="v">${money(sim.totalSEAP)}</span></div>
+    <div class="kv"><span>Bomberos</span><span class="v green">${money(FIXED.bomberos)}</span></div>
+    ${sim.subsidioExtraVal ? `<div class="kv"><span>Subsidio extraordinario del Gobierno (-)</span><span class="v blue">${money(-sim.subsidioExtraVal)}</span></div>` : ""}
+    <div class="kv totalrow"><span>TOTAL FACTURA ESTIMADA</span><span class="v">${money(sim.totalFactura)}</span></div>
+    ${hist ? `<div class="kv"><span>Diferencia vs. factura real</span><span class="v">${money(sim.totalFactura - facturaReal(mes).totalFactura)}</span></div>` : ""}
+    ${(!hist && tieneFacturaManual) ? `<div class="kv"><span>Diferencia vs. factura ingresada</span><span class="v">${money(sim.totalFactura - manual.total)}</span></div>` : ""}
+    `;
+  }
+
+  let proyeccionHTML = "";
+  proyeccionHTML += analisis.n < 2 ? `<div class="note">Ingresa al menos 2 días con lectura para ver la proyección de este mes.</div>` : `
+    <div class="summary-grid">
+      <div class="stat"><div class="num">${analisis.promedio.toFixed(1)}</div><div class="lbl">kWh promedio/día</div></div>
+      <div class="stat"><div class="num">${analisis.diasTranscurridos} / ${analisis.diasTotalesPeriodo}</div><div class="lbl">Días con dato / periodo</div></div>
+    </div>
+    <div class="kv"><span>Costo acumulado a la fecha (solo energía)</span><span class="v blue">${money(analisis.costoAcumuladoEnergia)}</span></div>
+    <div class="kv"><span>Proyección de consumo a fin de mes</span><span class="v">${kwh(analisis.proyeccionConsumo)}</span></div>
+    <div class="kv totalrow"><span>Proyección de factura total a fin de mes</span><span class="v">${analisis.simProyeccion ? money(analisis.simProyeccion.totalFactura) : "-"}</span></div>
+    ${comparacionMes ? (()=>{
+      const diff = ((c.consumoIngresado - comparacionMes.prevConsumo) / comparacionMes.prevConsumo) * 100;
+      const subiendo = diff > 0;
+      return `<div class="note" style="margin-top:8px; color:${Math.abs(diff)<5 ? 'var(--sub)' : (subiendo ? '#e8b169':'var(--ok)')};">${subiendo ? '📈' : '📉'} Vas gastando <b>${Math.abs(diff).toFixed(0)}% ${subiendo ? 'más' : 'menos'}</b> que ${mesLabel(comparacionMes.prevRef.mes)} ${comparacionMes.prevRef.year} a estas alturas (mismos ${comparacionMes.diasComparados} días).</div>`;
+    })() : ""}
+    `;
+  proyeccionHTML += `
+    <h3>Meta de gasto mensual</h3>
+    <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:8px;">
+      <div>
+        <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">Meta ($)</label>
+        <input type="number" step="0.01" id="metaInput" value="${meta ?? ''}" placeholder="Ej: 100.00" style="width:150px;">
+      </div>
+      <button id="guardarMetaBtn" style="width:auto; padding:8px 14px;">Guardar meta</button>
+    </div>
+    <div class="note" style="margin-bottom:10px;">Pon un estimado de cuánto quisieras gastar como máximo este mes en electricidad. Con eso, la app te va avisando si vas por buen camino o si tu consumo actual te va a hacer pasarte de esa meta.</div>
+    ${meta && analisis.simProyeccion ? (()=>{
+      const pct = Math.min(100, (analisis.simProyeccion.totalFactura/meta)*100);
+      const excedido = analisis.simProyeccion.totalFactura > meta;
+      return `<div style="background:var(--card2); border-radius:8px; height:22px; overflow:hidden; margin-bottom:6px;">
+        <div style="width:${pct}%; height:100%; background:${excedido ? 'var(--danger)' : 'var(--ok)'};"></div>
+      </div>
+      <div class="note">${excedido ? `⚠️ Tu proyección (${money(analisis.simProyeccion.totalFactura)}) ya supera tu meta de ${money(meta)}.` : `Vas ${pct.toFixed(0)}% de tu meta de ${money(meta)}, según la proyección actual.`}</div>`;
+    })() : meta ? `<div class="note">Ingresa más lecturas para calcular tu progreso contra la meta.</div>` : ""}
+    `;
+
+  const hoy = todayISO();
+  const filaHoy = c.rows.find(r => r.fecha === hoy);
+  const faltaHoy = !!filaHoy && filaHoy.lectura === null;
+  const faltaHoyHTML = faltaHoy ? `<div class="estado pend" style="margin-top:10px;">📅 Todavía no has ingresado la lectura de hoy (${fmtDate(hoy)}). ¡No dejes que se te acumule!</div>` : "";
+  const calendarHTML = buildCalendarHTML(c, analisis);
+
+  return {c, hist, manual, subsidioExtra, meta, analisis, comparacionMes, tieneFacturaManual, verifHTML, realHTML, simHTML, proyeccionHTML, hoy, faltaHoy, faltaHoyHTML, calendarHTML};
+}
+
+// Vuelve a calcular y refrescar SOLO las tarjetas de Verificación, Facturación/Simulador
+// y Proyección — sin tocar la tabla de lecturas diarias (para no perder el foco/scroll
+// mientras escribes). Se llama automáticamente cada vez que guardas una lectura u hora.
+async function actualizarStatsEnVivo(year, mes){
+  const verifCard = document.getElementById('verifCard');
+  const realCard = document.getElementById('realCard');
+  const simCard = document.getElementById('simCard');
+  const proyeccionCard = document.getElementById('proyeccionCard');
+  const diasCalcStat = document.getElementById('diasCalcStat');
+  const calendarCard = document.getElementById('calendarCard');
+  const faltaHoyBanner = document.getElementById('faltaHoyBanner');
+  if(!verifCard && !realCard && !simCard && !proyeccionCard && !calendarCard && !faltaHoyBanner) return; // no estamos viendo este mes
+
+  const s = await buildStatsSections(year, mes);
+  if(verifCard) verifCard.innerHTML = s.verifHTML;
+  if(realCard) realCard.innerHTML = s.realHTML || '<div class="note">Este mes aún no tiene factura real todavía.</div>';
+  if(simCard) simCard.innerHTML = s.simHTML;
+  if(proyeccionCard) proyeccionCard.innerHTML = s.proyeccionHTML;
+  if(diasCalcStat) diasCalcStat.textContent = `${s.c.rows.filter(r=>r.consumo!==null).length} / ${s.c.rows.length - 1}`;
+  if(calendarCard) calendarCard.innerHTML = s.calendarHTML;
+  if(faltaHoyBanner) faltaHoyBanner.innerHTML = s.faltaHoyHTML;
+
+  attachStatsCardEvents(year, mes);
+}
+
+function attachStatsCardEvents(year, mes){
+  const facturaBtn = document.getElementById('guardarFacturaManualBtn');
+  if(facturaBtn){
+    facturaBtn.addEventListener('click', async ()=>{
+      const consumo = parseFloat(document.getElementById('facturaManualConsumo').value);
+      const total = parseFloat(document.getElementById('facturaManualTotal').value);
+      await saveFacturaManual(year, mes, {consumo: isNaN(consumo)?null:consumo, total: isNaN(total)?null:total});
+      await actualizarStatsEnVivo(year, mes);
+    });
+  }
+  const subsidioBtn = document.getElementById('guardarSubsidioBtn');
+  if(subsidioBtn){
+    subsidioBtn.addEventListener('click', async ()=>{
+      const val = parseFloat(document.getElementById('subsidioExtraInput').value) || 0;
+      await saveSubsidioExtra(year, mes, val);
+      await actualizarStatsEnVivo(year, mes);
+    });
+  }
+  const metaBtn = document.getElementById('guardarMetaBtn');
+  if(metaBtn){
+    metaBtn.addEventListener('click', async ()=>{
+      const val = parseFloat(document.getElementById('metaInput').value);
+      await saveMeta(year, mes, isNaN(val)?null:val);
+      await actualizarStatsEnVivo(year, mes);
+    });
+  }
+}
+
+async function monthHTML(year, mes){
+  const s = await buildStatsSections(year, mes);
+  const {c, hist, manual, subsidioExtra, meta, analisis} = s;
+  let daysHTML = "";
+  c.rows.forEach(r=>{
+    const val = r.lectura!==null ? r.lectura : "";
+    const hora = r.hora || "";
+    const esInusual = analisis.fechasInusuales.includes(r.fecha);
+    const esDecreciente = c.fechasDecrecientes.includes(r.fecha);
+    const rowStyle = esDecreciente ? 'style="background:rgba(232,177,105,.18);"' : (esInusual ? 'style="background:rgba(240,113,111,.12);"' : '');
+    daysHTML += `<tr data-fecha="${r.fecha}" ${rowStyle}>
+      <td>${fmtDate(r.fecha)} <span style="color:var(--sub); font-size:.85em;">${diaSemanaCorta(r.fecha)}</span></td>
+      <td><input type="number" step="0.01" inputmode="decimal" enterkeyhint="next" class="lect-input ${r.lectura!==null?'hasvalue':''}" data-fecha="${r.fecha}" value="${val}" title="${esDecreciente ? '⚠️ Esta lectura es menor a la del día anterior — revisa si hubo un error al escribir.' : ''}"></td>
+      <td><input type="time" class="hora-input ${hora?'hasvalue':''}" data-fecha="${r.fecha}" value="${hora}"></td>
+      <td>${r.consumo!==null ? kwh(r.consumo) : "—"}${esInusual ? ' ⚠️' : ''}${esDecreciente ? ' ⬇️' : ''}</td>
+    </tr>`;
+  });
+
+  const periodo = hist ? {desde:DATA[mes].desde, hasta:DATA[mes].hasta} : cycleRange(year, mes);
+  const overrideKey = `${year}:${mes}`;
+  const tieneAjuste = !hist && !!FUTURE_OVERRIDES[overrideKey];
+  return `
+  <div class="card">
+    <h2 style="margin-bottom:6px;">${LANG==='en'?'Client Info':'Ficha del Cliente'}</h2>
+    <div class="kv"><span>${LANG==='en'?'Name':'Nombre'}</span><span class="v">${CLIENTE.nombre||"-"}</span></div>
+    <div class="kv"><span>${LANG==='en'?'ID (cédula)':'Cédula'}</span><span class="v">${CLIENTE.cedula||"-"}</span></div>
+    <div class="kv"><span>${LANG==='en'?'Address':'Dirección'}</span><span class="v">${CLIENTE.direccion||"-"}</span></div>
+    <div class="kv"><span>${LANG==='en'?'Account':'Cuenta Contrato'}</span><span class="v blue">${CLIENTE.cuenta||"-"}</span></div>
+    <div class="kv"><span>${LANG==='en'?'Meter No.':'Medidor No.'}</span><span class="v">${CLIENTE.medidor||"-"}</span></div>
+  </div>
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button id="prevMesBtn" title="${LANG==='en'?'Previous month':'Mes anterior'}" style="width:auto; padding:4px 10px; font-size:1rem; background:var(--card2); color:var(--text); border:1px solid var(--border);">‹</button>
+        <h2 style="margin:0;">${mesLabel(mes)} ${year} ${hist ? `<span class="badge">Periodo real: ${fmtDate(periodo.desde)} a ${fmtDate(periodo.hasta)}</span>` : `<span class="badge">Periodo estimado: ${fmtDate(periodo.desde)} a ${fmtDate(periodo.hasta)}</span>`}</h2>
+        <button id="nextMesBtn" title="${LANG==='en'?'Next month':'Mes siguiente'}" style="width:auto; padding:4px 10px; font-size:1rem; background:var(--card2); color:var(--text); border:1px solid var(--border);">›</button>
+      </div>
+      <button id="clearMonthBtn" style="width:auto; padding:6px 12px; font-size:.72rem; background:var(--card2); color:var(--danger); border:1px solid var(--border);">${t('borrar_mes')}</button>
+    </div>
+    <div id="faltaHoyBanner">${s.faltaHoyHTML}</div>
+    ${!hist ? `
+    <div class="note" style="margin:6px 0 10px;">Si tu distribuidora factura este mes con fechas distintas a las estimadas, ajusta aquí el inicio y/o el fin del periodo. Los meses siguientes se recalculan solos a partir de la fecha de corte.</div>
+    <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:14px;">
+      <div>
+        <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">Fecha de Inicio</label>
+        <input type="date" id="inicioDateInput" value="${periodo.desde}">
+      </div>
+      <div>
+        <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">Fecha de corte (fin del periodo)</label>
+        <input type="date" id="cutoffDateInput" value="${periodo.hasta}">
+      </div>
+      <button id="ajustarDiasBtn" style="width:auto; padding:8px 14px;">Ajustar días</button>
+      ${tieneAjuste ? `<button id="restaurarDiasBtn" style="width:auto; padding:8px 14px; background:var(--card2); color:var(--sub); border:1px solid var(--border);">Restaurar estimado (30 días)</button>` : ""}
+    </div>
+    ` : ""}
+    <h3>${t('lecturas_diarias')}</h3>
+    <div class="stat" style="max-width:260px; margin-bottom:6px;">
+      <div class="num" id="diasCalcStat">${c.rows.filter(r=>r.consumo!==null).length} / ${c.rows.length - 1}</div>
+      <div class="lbl">${t('dias_calc')}</div>
+    </div>
+    <div class="note" style="margin-bottom:10px;">El primer día del periodo no tiene "consumo diario" propio (es solo la lectura de arranque), por eso el máximo posible es ${c.rows.length - 1}, no ${c.rows.length}.</div>
+    <div id="notaInusualCard" class="note" style="color:#e8b169; margin-bottom:${analisis.fechasInusuales.length>0?'10px':'0'};">${analisis.fechasInusuales.length > 0 ? `⚠️ Se detectaron ${analisis.fechasInusuales.length} día(s) con consumo inusualmente alto (más de 50% sobre tu promedio del mes): ${analisis.fechasInusuales.map(fmtDate).join(", ")}. Revisa si quedó algo encendido esos días.` : ""}</div>
+    ${c.fechasDecrecientes.length > 0 ? `<div class="note" style="color:#e8b169; margin-bottom:10px;">⬇️ La lectura de estos días es menor a la del día anterior (resaltados en naranja): ${c.fechasDecrecientes.map(fmtDate).join(", ")}. El medidor no debería bajar — probablemente sea un error de tecleo. Puedes corregirlo cuando quieras, esto es solo informativo.</div>` : ""}
+    <div class="daysbox"><div style="overflow-x:auto;"><table><tr><th>${t('fecha')}</th><th>${t('lectura_kwh')}</th><th>${t('hora')}</th><th>${t('consumo_diario')}</th></tr>${daysHTML}</table></div></div>
+  </div>
+  <div class="card"><h2>${t('verificacion')}</h2><div id="verifCard">${s.verifHTML}</div></div>
+  <div class="card">
+    <h2>${LANG==='en'?'Calendar View':'Vista de Calendario'}</h2>
+    <div id="calendarCard">${s.calendarHTML}</div>
+    <div style="display:flex; flex-direction:column; gap:6px; margin-top:10px; font-size:.82rem; color:var(--sub);">
+      <div style="display:flex; align-items:center; gap:8px;"><span style="width:14px; height:14px; border-radius:4px; background:rgba(95,211,154,.6); flex:0 0 auto;"></span>${LANG==='en' ? 'Low consumption day' : 'Día de consumo bajo'}</div>
+      <div style="display:flex; align-items:center; gap:8px;"><span style="width:14px; height:14px; border-radius:4px; background:rgba(124,176,255,.5); flex:0 0 auto;"></span>${LANG==='en' ? 'Normal day' : 'Día normal'}</div>
+      <div style="display:flex; align-items:center; gap:8px;"><span style="width:14px; height:14px; border-radius:4px; background:rgba(240,113,111,.6); flex:0 0 auto;"></span>${LANG==='en' ? 'High consumption day' : 'Día de consumo alto'}</div>
+      <div style="font-size:.75rem; margin-top:2px;">${LANG==='en' ? '(relative to the monthly average)' : '(respecto al promedio del mes)'}</div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Proyección y Meta de Ahorro</h2>
+    <div id="proyeccionCard">${s.proyeccionHTML}</div>
+  </div>
+  <div class="cols2">
+    <div class="card"><div id="realCard">${s.realHTML || '<div class="note">Este mes aún no tiene factura real todavía.</div>'}</div></div>
+    <div class="card"><div id="simCard">${s.simHTML}</div></div>
+  </div>
+  <div class="card"><h2>Consumo diario</h2><div style="position:relative; height:220px;"><canvas id="monthChart"></canvas></div></div>
+  `;
+}
+
+// Pone el cursor al final del valor de un input type=number. setSelectionRange no
+// funciona de forma confiable en ese tipo de campo en todos los navegadores, así que
+// se cambia brevemente a type=text (donde sí funciona) y se restaura enseguida.
+function cursorAlFinalDelValor(inp){
+  const tipoOriginal = inp.type;
+  try{
+    inp.type = 'text';
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+  }catch(err){ /* se ignora si el navegador tampoco lo permite así */ }
+  finally{ inp.type = tipoOriginal; }
+}
+
+function attachMonthEvents(year, mes){
+  const lectInputs = Array.from(document.querySelectorAll('.lect-input'));
+  const horaInputs = Array.from(document.querySelectorAll('.hora-input'));
+  const dataRows = Array.from(document.querySelectorAll('.daysbox table tr')).slice(1); // sin la fila de encabezado
+
+  function consumoCellFor(idx){
+    const row = dataRows[idx];
+    if(!row) return null;
+    const tds = row.querySelectorAll('td');
+    return tds[3] || null;
+  }
+  function esInusualPorFecha(fecha){
+    return !!(ULTIMO_ANALISIS_MES && ULTIMO_ANALISIS_MES.fechasInusuales.includes(fecha));
+  }
+  function updateConsumoCell(idx){
+    const cell = consumoCellFor(idx);
+    const row = dataRows[idx];
+    if(!cell) return;
+    const fecha = row ? row.dataset.fecha : null;
+    const esInusual = fecha ? esInusualPorFecha(fecha) : false;
+    if(idx <= 0 || idx >= lectInputs.length){
+      cell.textContent = "—";
+      if(row) row.style.background = "";
+      return;
+    }
+    const curVal = parseFloat(lectInputs[idx].value);
+    const prevVal = parseFloat(lectInputs[idx-1].value);
+    if(isNaN(curVal) || isNaN(prevVal)){
+      cell.textContent = "—";
+      if(row) row.style.background = "";
+      return;
+    }
+    const diff = +(curVal - prevVal).toFixed(2);
+    const esDecreciente = diff < 0;
+    cell.textContent = kwh(diff) + (esInusual ? ' ⚠️' : '') + (esDecreciente ? ' ⬇️' : '');
+    if(row) row.style.background = esDecreciente ? 'rgba(232,177,105,.18)' : (esInusual ? 'rgba(240,113,111,.12)' : '');
+    lectInputs[idx].title = esDecreciente ? '⚠️ Esta lectura es menor a la del día anterior — revisa si hubo un error al escribir.' : '';
+  }
+  // Después de que se recalcula el promedio del mes (tras guardar una lectura), este
+  // barrido revisa TODOS los días — porque el promedio pudo cambiar y hacer que un día
+  // que antes se veía normal ahora se marque como consumo alto (o viceversa).
+  function actualizarTodasLasFilasInusuales(){
+    dataRows.forEach((row, idx)=>{ updateConsumoCell(idx); });
+    const notaInusual = document.getElementById('notaInusualCard');
+    if(notaInusual && ULTIMO_ANALISIS_MES){
+      const fechas = ULTIMO_ANALISIS_MES.fechasInusuales;
+      notaInusual.style.marginBottom = fechas.length > 0 ? '10px' : '0';
+      notaInusual.innerHTML = fechas.length > 0
+        ? `⚠️ Se detectaron ${fechas.length} día(s) con consumo inusualmente alto (más de 50% sobre tu promedio del mes): ${fechas.map(fmtDate).join(", ")}. Revisa si quedó algo encendido esos días.`
+        : "";
+    }
+  }
+
+  async function saveRow(fecha){
+    const lectEl = document.querySelector(`.lect-input[data-fecha="${fecha}"]`);
+    const horaEl = document.querySelector(`.hora-input[data-fecha="${fecha}"]`);
+    const val = lectEl ? parseFloat(lectEl.value) : NaN;
+    const hora = horaEl ? horaEl.value : "";
+    let entries = await loadEntries(year, mes);
+    if(isNaN(val)){
+      delete entries[fecha];
+    } else {
+      entries[fecha] = {valor: val, hora};
+    }
+    await saveEntries(year, mes, entries);
+  }
+
+  // Guarda en segundo plano, actualiza al instante la celda de consumo de esa fila,
+  // resalta el casillero igual que las lecturas ya guardadas, y refresca
+  // Verificación/Simulador/Proyección — todo sin reconstruir la tabla de
+  // lecturas (para no perder el foco/scroll mientras escribes).
+  function guardarSinRefrescar(fecha, idx){
+    saveRow(fecha).then(()=> actualizarStatsEnVivo(year, mes)).then(()=> actualizarTodasLasFilasInusuales()).catch(err => console.error('Error guardando:', err));
+    updateConsumoCell(idx);
+    updateConsumoCell(idx+1);
+    const lectEl = lectInputs[idx];
+    if(lectEl) lectEl.classList.toggle('hasvalue', lectEl.value !== '');
+    const horaEl = horaInputs[idx];
+    if(horaEl) horaEl.classList.toggle('hasvalue', horaEl.value !== '');
+  }
+
+  lectInputs.forEach((inp, idx)=>{
+    inp.addEventListener('blur', ()=>{ guardarSinRefrescar(inp.dataset.fecha, idx); });
+    inp.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        guardarSinRefrescar(inp.dataset.fecha, idx);
+        // Enter en Lectura -> salta directo a la Hora de la MISMA fila, sin refrescar
+        const horaEl = horaInputs[idx];
+        if(horaEl) horaEl.focus();
+        return;
+      }
+      if((e.key === 'Backspace' || e.key === 'Delete') && inp.value === ''){
+        // Ya está vacío y vuelves a tocar borrar -> salta hacia atrás, a la Hora del día anterior
+        e.preventDefault();
+        const horaAnterior = horaInputs[idx-1];
+        if(horaAnterior) horaAnterior.focus();
+      }
+    });
+  });
+
+  horaInputs.forEach((inp, idx)=>{
+    inp.addEventListener('blur', ()=>{ guardarSinRefrescar(inp.dataset.fecha, idx); });
+    inp.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        guardarSinRefrescar(inp.dataset.fecha, idx);
+        // Enter en Hora -> salta directo a la Lectura de la fila SIGUIENTE, sin refrescar
+        const nextLect = lectInputs[idx+1];
+        if(nextLect){ nextLect.focus(); nextLect.select(); }
+        return;
+      }
+      if(e.key === 'Backspace' || e.key === 'Delete'){
+        e.preventDefault();
+        if(inp.value !== ''){
+          // 1er toque: borra el campo completo de una vez (muestra --:--)
+          inp.value = '';
+          inp.dispatchEvent(new Event('input', {bubbles:true}));
+        } else {
+          // 2do toque (ya estaba vacío): salta a la Lectura de esta misma fila
+          const lectEl = lectInputs[idx];
+          if(lectEl){
+            lectEl.focus();
+            cursorAlFinalDelValor(lectEl);
+          }
+        }
+      }
+    });
+  });
+
+  const clearBtn = document.getElementById('clearMonthBtn');
+  if(clearBtn){
+    clearBtn.addEventListener('click', async ()=>{
+      if(!confirm(`¿Borrar todas las lecturas ingresadas en ${mesLabel(mes)} ${year}? Esta acción no se puede deshacer.`)) return;
+      await storageDelete(`lecturas:${PERFIL_ACTIVO}:${year}:${mes}`);
+      await storageDelete(`factura_manual:${PERFIL_ACTIVO}:${year}:${mes}`);
+      await storageDelete(`subsidio_extra:${PERFIL_ACTIVO}:${year}:${mes}`);
+      await storageDelete(`meta_ahorro:${PERFIL_ACTIVO}:${year}:${mes}`);
+      renderContent();
+    });
+  }
+  const ajustarBtn = document.getElementById('ajustarDiasBtn');
+  if(ajustarBtn){
+    ajustarBtn.addEventListener('click', async ()=>{
+      const inicioEl = document.getElementById('inicioDateInput');
+      const dateEl = document.getElementById('cutoffDateInput');
+      const nuevoInicio = inicioEl ? inicioEl.value : undefined;
+      const nuevaFecha = dateEl.value;
+      if(!nuevaFecha){ alert('Elige una fecha de corte.'); return; }
+      if(nuevoInicio && nuevoInicio > nuevaFecha){ alert('La fecha de inicio no puede ser posterior a la fecha de corte.'); return; }
+      await setCutoffOverride(year, mes, nuevoInicio, nuevaFecha);
+      renderContent();
+    });
+  }
+  const restaurarBtn = document.getElementById('restaurarDiasBtn');
+  if(restaurarBtn){
+    restaurarBtn.addEventListener('click', async ()=>{
+      if(!confirm('¿Restaurar el estimado de 30 días para este mes? Los meses siguientes también se recalcularán.')) return;
+      await clearCutoffOverride(year, mes);
+      renderContent();
+    });
+  }
+
+  function irAMes(nuevoYear, nuevoMes){
+    navegarA(nuevoMes, nuevoYear);
+  }
+  const prevBtn = document.getElementById('prevMesBtn');
+  if(prevBtn){
+    prevBtn.addEventListener('click', ()=>{
+      const idx = MESES.indexOf(mes);
+      if(idx > 0){ irAMes(year, MESES[idx-1]); }
+      else if(YEARS.includes(year-1)){ irAMes(year-1, MESES[11]); }
+    });
+  }
+  const nextBtn = document.getElementById('nextMesBtn');
+  if(nextBtn){
+    nextBtn.addEventListener('click', ()=>{
+      const idx = MESES.indexOf(mes);
+      if(idx < 11){ irAMes(year, MESES[idx+1]); }
+      else if(YEARS.includes(year+1)){ irAMes(year+1, MESES[0]); }
+    });
+  }
+
+  attachStatsCardEvents(year, mes);
+}
+async function monthChart(year, mes){
+  destroyChart('monthChart');
+  const c = await computeMonth(year, mes);
+  const ctx = document.getElementById('monthChart');
+  if(!ctx) return;
+  try{
+    charts['monthChart'] = new Chart(ctx, {
+      type:'bar',
+      data:{ labels:c.rows.map(r=>{ if(!r.fecha) return ""; const [y,m,d]=r.fecha.split("-"); return DATE_FORMAT==="mdy" ? `${m}/${d}` : `${d}/${m}`; }), datasets:[{label:'kWh', data:c.rows.map(r=>r.consumo), backgroundColor:'#4f8ff0', borderRadius:3}] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#93a3b8', font:{size:9}}, grid:{display:false}}, y:{ticks:{color:'#93a3b8'}, grid:{color:'#2a3849'}} } }
+    });
+  } catch(err){
+    console.error('No se pudo dibujar la gráfica del mes (¿sin conexión a internet para cargar Chart.js?):', err);
+  }
+}
+
+function actualizarTitulos(){
+  const h1 = document.getElementById('appTitle');
+  const sub = document.getElementById('appSub');
+  if(h1) h1.textContent = t('app_title');
+  if(sub) sub.textContent = t('app_sub');
+  const pdfBtn = document.getElementById('generarPdfBtn'); if(pdfBtn) pdfBtn.textContent = t('btn_pdf');
+}
+
+function landingProfileLabel(p){
+  return p.nombre || (LANG==='en' ? '(No name yet)' : '(Sin nombre aún)');
+}
+function mostrarPantallaBienvenida(){
+  const hora = new Date().getHours();
+  const saludo = LANG==='en'
+    ? (hora < 12 ? 'Good morning' : hora < 19 ? 'Good afternoon' : 'Good evening')
+    : (hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches');
+  document.getElementById('landingTitle').textContent = `${saludo}`;
+  document.getElementById('landingSub').textContent = LANG==='en'
+    ? 'Choose a profile or create a new one to continue tracking your electricity consumption.'
+    : 'Elige un perfil o crea uno nuevo para continuar llevando el registro de tu consumo eléctrico.';
+  document.getElementById('landingListLabel').textContent = LANG==='en' ? 'YOUR PROFILES' : 'TUS PERFILES';
+
+  const list = document.getElementById('landingProfileList');
+  list.innerHTML = "";
+  PERFILES.forEach(p=>{
+    const card = document.createElement('div');
+    card.className = 'profile-card' + (p.id === PERFIL_ACTIVO ? ' active-profile' : '');
+    const inicial = (p.nombre || '?').trim().charAt(0).toUpperCase() || '?';
+    card.innerHTML = `
+      <div class="avatar">${inicial === '?' ? '👤' : inicial}</div>
+      <div class="info">
+        <div class="name">${landingProfileLabel(p)}</div>
+        <div class="meta">${p.cuenta ? (LANG==='en'?'Account ':'Cuenta ')+p.cuenta : (LANG==='en'?'New / empty profile':'Perfil nuevo / vacío')}</div>
+      </div>
+      <span class="landing-del-btn" title="${LANG==='en'?'Delete this profile':'Borrar este perfil'}" style="padding:6px 10px; color:var(--danger); cursor:pointer; font-size:.95rem;">✕</span>
+      <div class="chev">›</div>`;
+    card.onclick = async ()=>{
+      if(PERFIL_ACTIVO !== p.id){ await cambiarPerfilActivo(p.id); }
+      else { await loadYears(); await loadOverrides(); buildFutureRanges(); currentYear = YEARS[0]||BASE_YEAR; currentTab = "Resumen Anual"; }
+      entrarAlApp();
+    };
+    const delBtn = card.querySelector('.landing-del-btn');
+    delBtn.addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      const msg = LANG==='en'
+        ? `Delete profile "${landingProfileLabel(p)}"? This cannot be undone.`
+        : `¿Borrar el perfil "${landingProfileLabel(p)}"? Esta acción no se puede deshacer.`;
+      if(!confirm(msg)) return;
+
+      if(await perfilTieneDatos(p.id)){
+        const msgExportar = LANG==='en'
+          ? `Do you want to export a backup (JSON) of "${landingProfileLabel(p)}" before deleting it?`
+          : `¿Quieres exportar un respaldo (JSON) de "${landingProfileLabel(p)}" antes de borrarlo?`;
+        if(confirm(msgExportar)){
+          await exportarJSONDePerfil(p.id);
+          await new Promise(r=>setTimeout(r, 400)); // dar tiempo a que la descarga del respaldo se dispare bien
+        }
+      }
+
+      await borrarPerfil(p.id);
+      mostrarPantallaBienvenida();
+    });
+    list.appendChild(card);
+  });
+  const nuevo = document.createElement('div');
+  nuevo.className = 'profile-card-new';
+  nuevo.innerHTML = `<span>＋</span><span>${LANG==='en' ? 'New property / account' : 'Nueva propiedad / cuenta'}</span>`;
+  nuevo.onclick = async ()=>{
+    await nuevoPerfil();
+    currentTab = "Ajustes"; // para que llenes de una vez los datos del perfil nuevo
+    entrarAlApp(true);
+  };
+  list.appendChild(nuevo);
+}
+function entrarAlApp(irADatosCliente){
+  document.getElementById('landingScreen').style.display = 'none';
+  document.getElementById('mainWrap').style.display = 'block';
+  actualizarTitulos();
+  renderYearTabs(); renderSpecialTabs(); renderTabs(); renderContent();
+  try{ history.pushState({screen:'app', tab: currentTab, year: currentYear}, '', '#'+encodeURIComponent(currentTab)); }catch(e){ /* se ignora si no está permitido */ }
+  if(irADatosCliente){
+    const card = document.getElementById('datosClienteCard');
+    if(card) card.scrollIntoView({block:'start'});
+  }
+}
+
+function traducirErrorFirebase(e){
+  const c = e && e.code;
+  const mapa = {
+    'auth/invalid-email': 'Ese correo no parece válido.',
+    'auth/user-not-found': 'No existe ninguna cuenta con ese correo.',
+    'auth/wrong-password': 'La contraseña es incorrecta.',
+    'auth/invalid-credential': 'Correo o contraseña incorrectos.',
+    'auth/email-already-in-use': 'Ya existe una cuenta con ese correo — intenta iniciar sesión en su lugar.',
+    'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres.',
+    'auth/too-many-requests': 'Demasiados intentos. Espera un momento e inténtalo de nuevo.',
+    'auth/network-request-failed': 'No hay conexión a internet.',
+  };
+  return mapa[c] || (LANG==='en' ? "Something went wrong. Try again." : 'Algo salió mal. Intenta de nuevo.');
+}
+
+async function cargarDatosDeFirebase(){
+  try{
+    const snap = await firebase.firestore().collection('usuarios').doc(FIREBASE_UID).get();
+    FIREBASE_DATOS = (snap.exists && snap.data().datos) ? snap.data().datos : {};
+  }catch(e){
+    console.error('No se pudieron cargar los datos de la nube:', e);
+    FIREBASE_DATOS = {};
+  }
+}
+
+async function continuarDespuesDeAuth(){
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('landingScreen').style.display = 'flex';
+  await loadCliente();
+  await loadDateFormat();
+  await loadTerceraEdad();
+  await loadPais();
+  await loadLang();
+  await loadTheme();
+  mostrarPantallaBienvenida();
+  try{ history.replaceState({screen:'landing'}, '', '#'); }catch(e){ /* se ignora */ }
+}
+
+async function cerrarSesion(){
+  if(!confirm(LANG==='en' ? 'Sign out?' : '¿Cerrar sesión?')) return;
+  try{ await firebase.auth().signOut(); }catch(e){}
+  FIREBASE_UID = null;
+  FIREBASE_DATOS = {};
+  try{ localStorage.removeItem('modo_sin_cuenta'); }catch(e){}
+  location.reload();
+}
+
+(async function init(){
+  // Registro del Service Worker para poder "instalar" la app (PWA) y que funcione sin
+  // internet una vez cargada. Si la app se abre como archivo local (file://) o si el
+  // archivo sw.js no está publicado junto a ella, esto simplemente no hace nada — no
+  // rompe el resto de la app.
+  if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+    try{ await navigator.serviceWorker.register('./sw.js'); }catch(e){ /* no disponible, se ignora */ }
+  }
+
+  let authModoRegistro = false;
+  const authSubmitBtn = document.getElementById('authSubmitBtn');
+  const authToggleBtn = document.getElementById('authToggleBtn');
+  const authOlvideBtn = document.getElementById('authOlvideBtn');
+  const authSinCuentaBtn = document.getElementById('authSinCuentaBtn');
+  const authError = document.getElementById('authError');
+
+  function mostrarErrorAuth(msg, ok){
+    authError.style.color = ok ? 'var(--ok)' : 'var(--danger)';
+    authError.textContent = msg;
+    authError.style.display = 'block';
+  }
+
+  authSubmitBtn.addEventListener('click', async ()=>{
+    const email = document.getElementById('authEmail').value.trim();
+    const pass = document.getElementById('authPassword').value;
+    authError.style.display = 'none';
+    if(!email || !pass){ mostrarErrorAuth('Completa correo y contraseña.'); return; }
+    if(!FIREBASE_OK){ mostrarErrorAuth('No se pudo conectar con el servicio de cuentas. Revisa tu conexión.'); return; }
+    authSubmitBtn.disabled = true;
+    try{
+      if(authModoRegistro){
+        await firebase.auth().createUserWithEmailAndPassword(email, pass);
+      } else {
+        await firebase.auth().signInWithEmailAndPassword(email, pass);
+      }
+      // El listener de onAuthStateChanged se encarga de continuar desde aquí.
+    }catch(e){
+      mostrarErrorAuth(traducirErrorFirebase(e));
+    }finally{
+      authSubmitBtn.disabled = false;
+    }
+  });
+
+  authToggleBtn.addEventListener('click', ()=>{
+    authModoRegistro = !authModoRegistro;
+    authError.style.display = 'none';
+    document.getElementById('authTitle').textContent = authModoRegistro ? 'Crear cuenta' : 'Iniciar sesión';
+    document.getElementById('authSub').textContent = authModoRegistro
+      ? 'Crea tu cuenta para guardar tus datos y verlos desde cualquier dispositivo.'
+      : 'Inicia sesión para ver tus datos desde cualquier dispositivo.';
+    authSubmitBtn.textContent = authModoRegistro ? 'Crear cuenta' : 'Iniciar sesión';
+    authToggleBtn.textContent = authModoRegistro ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Crear una';
+  });
+
+  authOlvideBtn.addEventListener('click', async ()=>{
+    const email = document.getElementById('authEmail').value.trim();
+    authError.style.display = 'none';
+    if(!email){ mostrarErrorAuth('Escribe tu correo arriba primero.'); return; }
+    if(!FIREBASE_OK){ mostrarErrorAuth('No se pudo conectar con el servicio de cuentas.'); return; }
+    try{
+      await firebase.auth().sendPasswordResetEmail(email);
+      mostrarErrorAuth('Te enviamos un correo para restablecer tu contraseña.', true);
+    }catch(e){
+      mostrarErrorAuth(traducirErrorFirebase(e));
+    }
+  });
+
+  authSinCuentaBtn.addEventListener('click', async ()=>{
+    try{ localStorage.setItem('modo_sin_cuenta', 'true'); }catch(e){}
+    await continuarDespuesDeAuth();
+  });
+
+  let modoSinCuenta = false;
+  try{ modoSinCuenta = localStorage.getItem('modo_sin_cuenta') === 'true'; }catch(e){}
+
+  if(FIREBASE_OK && !modoSinCuenta){
+    firebase.auth().onAuthStateChanged(async (user)=>{
+      if(user){
+        FIREBASE_UID = user.uid;
+        await cargarDatosDeFirebase();
+        await continuarDespuesDeAuth();
+      } else {
+        document.getElementById('authScreen').style.display = 'flex';
+      }
+    });
+  } else {
+    await continuarDespuesDeAuth();
+  }
+
+  window.addEventListener('popstate', (e)=>{
+    const estado = e.state;
+    if(estado && estado.screen === 'app'){
+      currentTab = estado.tab;
+      currentYear = estado.year;
+      document.getElementById('landingScreen').style.display = 'none';
+      document.getElementById('mainWrap').style.display = 'block';
+      renderYearTabs(); renderSpecialTabs(); renderTabs(); renderContent();
+    } else {
+      // Sin estado, o estado de "landing" -> volver a la pantalla principal, sin
+      // volver a empujar una entrada nueva al historial (para no crear un bucle).
+      document.getElementById('mainWrap').style.display = 'none';
+      document.getElementById('drawerOverlay').style.display = 'none';
+      document.getElementById('drawerPanel').style.display = 'none';
+      document.getElementById('landingScreen').style.display = 'flex';
+      mostrarPantallaBienvenida();
+    }
+  });
+
+  document.getElementById('generarPdfBtn').addEventListener('click', generarReportePDF);
+  document.getElementById('menuHamburgerBtn').addEventListener('click', openDrawer);
+  document.getElementById('drawerOverlay').addEventListener('click', closeDrawer);
+  document.getElementById('searchIconBtn').addEventListener('click', openSearch);
+  document.getElementById('searchOverlay').addEventListener('click', closeSearch);
+  document.getElementById('searchInput').addEventListener('input', (e)=>{
+    renderResultadosBusqueda(e.target.value);
+  });
+  document.getElementById('searchInput').addEventListener('keydown', (e)=>{
+    if(e.key === 'ArrowDown'){
+      e.preventDefault();
+      if(searchResultadosActuales.length){
+        searchSelectedIndex = (searchSelectedIndex + 1) % searchResultadosActuales.length;
+        marcarSeleccionBusqueda();
+      }
+    } else if(e.key === 'ArrowUp'){
+      e.preventDefault();
+      if(searchResultadosActuales.length){
+        searchSelectedIndex = (searchSelectedIndex - 1 + searchResultadosActuales.length) % searchResultadosActuales.length;
+        marcarSeleccionBusqueda();
+      }
+    } else if(e.key === 'Enter'){
+      e.preventDefault();
+      if(searchSelectedIndex >= 0 && searchResultadosActuales[searchSelectedIndex]){
+        ejecutarResultadoBusqueda(searchResultadosActuales[searchSelectedIndex]);
+      }
+    } else if(e.key === 'Escape'){
+      closeSearch();
+    }
+  });
+  document.getElementById('appTitle').addEventListener('click', ()=>{
+    navegarA("Resumen Anual");
+  });
+  document.getElementById('compartirAppBtn').addEventListener('click', iniciarFlujoCompartir);
+  const importarLandingBtn = document.getElementById('importarLandingBtn');
+  const importarLandingFile = document.getElementById('importarLandingFile');
+  importarLandingBtn.addEventListener('click', ()=> importarLandingFile.click());
+  importarLandingFile.addEventListener('change', async (e)=>{
+    if(e.target.files.length) await importarDesdeLanding(e.target.files[0]);
+    e.target.value = "";
+  });
+})();
+</script>
+</body>
+</html>
