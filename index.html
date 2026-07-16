@@ -226,6 +226,7 @@
     <button id="authToggleBtn" style="width:100%; margin-top:8px; padding:9px 14px; background:var(--card2); color:var(--text); border:1px solid var(--border);">¿No tienes cuenta? Crear una</button>
     <button id="authOlvideBtn" style="width:100%; margin-top:8px; padding:8px 14px; background:none; color:var(--sub); border:none; text-decoration:underline; font-size:.82rem;">¿Olvidaste tu contraseña?</button>
     <button id="authSinCuentaBtn" style="width:100%; margin-top:16px; padding:9px 14px; background:none; color:var(--sub); border:1px dashed var(--border);">Usar sin cuenta (solo en este dispositivo)</button>
+    <button id="authInvitadoBtn" style="width:100%; margin-top:8px; padding:9px 14px; background:none; color:var(--accent); border:1px dashed var(--accent);">👀 Ver una demo (modo invitado)</button>
   </div>
 </div>
 <div id="landingScreen" style="display:none; min-height:100vh; align-items:center; justify-content:center; padding:20px;">
@@ -243,6 +244,10 @@
   </div>
 </div>
 <div class="wrap" id="mainWrap" style="display:none;">
+  <div id="invitadoBanner" style="display:none; background:rgba(124,176,255,.12); border:1px solid var(--accent); border-radius:8px; padding:10px 14px; margin-bottom:14px; font-size:.82rem; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+    <span>👀 <b>Modo invitado</b> — estos son datos de ejemplo, nada se guarda de verdad.</span>
+    <button id="salirInvitadoBtn" style="width:auto; padding:5px 10px; font-size:.78rem; background:var(--card2); color:var(--text); border:1px solid var(--border);">Salir de la demo</button>
+  </div>
   <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
     <div style="display:flex; align-items:flex-start; gap:10px;">
       <button id="menuHamburgerBtn" title="Menú" style="width:auto; flex:0 0 auto; padding:8px 10px; font-size:1.2rem; line-height:1; background:var(--card2); color:var(--text); border:1px solid var(--border); border-radius:8px; cursor:pointer;">☰</button>
@@ -288,6 +293,8 @@
 const HAS_CLAUDE_STORAGE = (typeof window !== 'undefined' && !!window.storage);
 let FIREBASE_UID = null;      // se llena al iniciar sesión
 let FIREBASE_DATOS = {};      // copia en memoria de los datos guardados en la nube de este usuario
+let MODO_INVITADO = false;    // true mientras se explora la demo — nada de esto se guarda de verdad
+let INVITADO_DATOS = {};      // almacén en memoria, solo para la sesión de demo
 let avisoErrorFirebaseMostrado = false;
 function avisarErrorFirebase(e){
   if(avisoErrorFirebaseMostrado) return; // solo una vez por sesión, para no saturar de alertas
@@ -300,6 +307,9 @@ function avisarErrorFirebase(e){
 }
 
 async function storageGet(key){
+  if(MODO_INVITADO){
+    return (INVITADO_DATOS[key] !== undefined) ? INVITADO_DATOS[key] : null;
+  }
   if(FIREBASE_UID){
     return (FIREBASE_DATOS && FIREBASE_DATOS[key] !== undefined) ? FIREBASE_DATOS[key] : null;
   }
@@ -310,6 +320,10 @@ async function storageGet(key){
   return localStorage.getItem(key);
 }
 async function storageSet(key, value){
+  if(MODO_INVITADO){
+    INVITADO_DATOS[key] = value;
+    return;
+  }
   if(FIREBASE_UID){
     FIREBASE_DATOS[key] = value;
     try{
@@ -324,6 +338,10 @@ async function storageSet(key, value){
   }
 }
 async function storageDelete(key){
+  if(MODO_INVITADO){
+    delete INVITADO_DATOS[key];
+    return;
+  }
   if(FIREBASE_UID){
     delete FIREBASE_DATOS[key];
     try{
@@ -1598,9 +1616,22 @@ let currentTab = "Resumen Anual";
 const SPECIAL_TABS = ["Resumen Anual","Tarifa Eléctrica"];
 const ALL_TABS = MESES;
 
+function datosClienteCompletos(){
+  return !!(CLIENTE && CLIENTE.nombre && CLIENTE.cedula && CLIENTE.direccion && CLIENTE.cuenta && CLIENTE.medidor);
+}
+
 // Navega a una pestaña/mes dentro de la app, actualiza la pantalla, y registra el
-// cambio en el historial del navegador para que el botón "Atrás" funcione.
+// cambio en el historial del navegador para que el botón "Atrás" funcione. Si al
+// perfil activo le faltan datos del cliente, no deja ver el resto de la app —
+// te manda directo a completarlos primero (el modo invitado/demo queda exento).
 function navegarA(tab, year){
+  if(!MODO_INVITADO && tab !== "Ajustes" && !datosClienteCompletos()){
+    tab = "Ajustes";
+    setTimeout(()=>{
+      const card = document.getElementById('datosClienteCard');
+      if(card) card.scrollIntoView({block:'start'});
+    }, 0);
+  }
   if(year !== undefined) currentYear = year;
   currentTab = tab;
   renderYearTabs(); renderSpecialTabs(); renderTabs(); renderContent();
@@ -1984,6 +2015,7 @@ function ajustesHTML(){
   <div class="card" id="datosClienteCard">
     <h2>${LANG==='en' ? 'Client Data' : 'Datos del Cliente'}</h2>
     <div class="note" style="margin-bottom:12px;">${LANG==='en' ? "This information appears on the Ficha del Cliente card and on your PDF/Excel reports." : "Esta información aparece en la Ficha del Cliente y en tus reportes de PDF/Excel."}</div>
+    ${!MODO_INVITADO && !datosClienteCompletos() ? `<div class="estado pend" style="margin-bottom:12px;">🔒 ${LANG==='en' ? "Complete these fields to unlock the rest of the app." : "Completa estos campos para desbloquear el resto de la app."}</div>` : ""}
 
     ${PERFILES.length > 1 ? `
     <label style="font-size:.78rem; color:var(--sub); display:block; margin-bottom:4px;">${LANG==='en'?'Profile / account':'Perfil / cuenta'}</label>
@@ -3166,7 +3198,12 @@ function mostrarPantallaBienvenida(){
 function entrarAlApp(irADatosCliente){
   document.getElementById('landingScreen').style.display = 'none';
   document.getElementById('mainWrap').style.display = 'block';
+  document.getElementById('invitadoBanner').style.display = MODO_INVITADO ? 'flex' : 'none';
   actualizarTitulos();
+  if(!MODO_INVITADO && !datosClienteCompletos()){
+    currentTab = "Ajustes";
+    irADatosCliente = true;
+  }
   renderYearTabs(); renderSpecialTabs(); renderTabs(); renderContent();
   try{ history.pushState({screen:'app', tab: currentTab, year: currentYear}, '', '#'+encodeURIComponent(currentTab)); }catch(e){ /* se ignora si no está permitido */ }
   if(irADatosCliente){
@@ -3214,6 +3251,55 @@ async function continuarDespuesDeAuth(){
   await loadTheme();
   mostrarPantallaBienvenida();
   try{ history.replaceState({screen:'landing'}, '', '#'); }catch(e){ /* se ignora */ }
+}
+
+// Arma una demo completa con un perfil y lecturas de ejemplo, todo guardado solo en
+// memoria (nunca toca el almacenamiento real) — para que cualquiera pueda ver cómo
+// funciona la app sin necesidad de crear cuenta ni escribir datos propios.
+async function iniciarModoInvitado(){
+  MODO_INVITADO = true;
+  INVITADO_DATOS = {};
+
+  const demo = {
+    id: 'invitado_demo',
+    nombre: 'Juan Pérez (perfil de ejemplo)',
+    cedula: '0000000000',
+    direccion: 'Av. Siempre Viva 123, Ciudad Ejemplo',
+    cuenta: '123456789',
+    medidor: '00000000'
+  };
+  PERFILES = [demo];
+  PERFIL_ACTIVO = 'invitado_demo';
+  CLIENTE = {...demo};
+  await guardarPerfiles();
+  await saveDateFormat('dmy');
+  await saveTerceraEdad(false);
+  await saveLang('es');
+  await loadYears();
+  buildFutureRanges();
+
+  // Llenar el mes actual con lecturas de ejemplo, hasta el día de hoy.
+  const info = await diasPendientesInfo();
+  if(info){
+    const entries = await loadEntries(info.year, info.mes);
+    const dias = dayList(info.year, info.mes).filter(f => f <= todayISO());
+    let val = 12000;
+    dias.forEach((fecha, i)=>{
+      val += 18 + (i % 4 === 0 ? 32 : 0); // un dia inusualmente alto cada tanto, para que se vea la deteccion
+      entries[fecha] = {valor: val, hora: '07:3' + (i%2)};
+    });
+    await saveEntries(info.year, info.mes, entries);
+  }
+
+  currentYear = YEARS[0] || BASE_YEAR;
+  currentTab = "Resumen Anual";
+  entrarAlApp();
+}
+
+// Sale del modo invitado y recarga la app desde cero, en blanco (nada de la demo se
+// guardó de verdad, así que no hay nada que borrar).
+function salirDeModoInvitado(){
+  location.reload();
 }
 
 async function cerrarSesion(){
@@ -3317,6 +3403,12 @@ async function cerrarSesion(){
     await continuarDespuesDeAuth();
   });
 
+  const authInvitadoBtn = document.getElementById('authInvitadoBtn');
+  authInvitadoBtn.addEventListener('click', async ()=>{
+    await iniciarModoInvitado();
+  });
+  document.getElementById('salirInvitadoBtn').addEventListener('click', salirDeModoInvitado);
+
   const authGoogleBtn = document.getElementById('authGoogleBtn');
   authGoogleBtn.addEventListener('click', async ()=>{
     authError.style.display = 'none';
@@ -3356,7 +3448,7 @@ async function cerrarSesion(){
   window.addEventListener('popstate', (e)=>{
     const estado = e.state;
     if(estado && estado.screen === 'app'){
-      currentTab = estado.tab;
+      currentTab = (!MODO_INVITADO && estado.tab !== "Ajustes" && !datosClienteCompletos()) ? "Ajustes" : estado.tab;
       currentYear = estado.year;
       document.getElementById('landingScreen').style.display = 'none';
       document.getElementById('mainWrap').style.display = 'block';
