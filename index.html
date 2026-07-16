@@ -277,6 +277,7 @@
   <div id="fotoModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:200; align-items:center; justify-content:center; padding:20px; flex-direction:column;">
     <button id="fotoModalCerrarBtn" style="position:absolute; top:16px; right:16px; width:auto; padding:8px 14px; background:var(--card2); color:var(--text); border:1px solid var(--border);">✕</button>
     <img id="fotoModalImg" style="max-width:100%; max-height:85vh; border-radius:8px; object-fit:contain;">
+    <button id="fotoModalBorrarBtn" style="margin-top:14px; width:auto; padding:9px 16px; background:var(--card2); color:var(--danger); border:1px solid var(--border);">🗑️ Borrar esta foto</button>
   </div>
 </div>
 
@@ -962,13 +963,36 @@ async function subirFotoMedidor(file, fecha){
   }
 }
 
-function abrirFotoModal(url){
+let FOTO_MODAL_CONTEXTO = null; // {year, mes, fecha, btn} de la foto actualmente abierta
+function abrirFotoModal(url, contexto){
   document.getElementById('fotoModalImg').src = url;
   document.getElementById('fotoModalOverlay').style.display = 'flex';
+  FOTO_MODAL_CONTEXTO = contexto || null;
+  const borrarBtn = document.getElementById('fotoModalBorrarBtn');
+  borrarBtn.style.display = contexto ? 'inline-block' : 'none';
 }
 function cerrarFotoModal(){
   document.getElementById('fotoModalOverlay').style.display = 'none';
   document.getElementById('fotoModalImg').src = '';
+  FOTO_MODAL_CONTEXTO = null;
+}
+async function borrarFotoDelModal(){
+  if(!FOTO_MODAL_CONTEXTO) return;
+  const {year, mes, fecha, btn} = FOTO_MODAL_CONTEXTO;
+  if(!confirm(LANG==='en'
+    ? 'Remove this photo from the app? (It stays stored on Cloudinary, but this app will no longer show or link to it.)'
+    : '¿Quitar esta foto de la app? (Sigue guardada en Cloudinary, pero la app ya no la va a mostrar ni a enlazar.)')) return;
+  let entries = await loadEntries(year, mes);
+  if(entries[fecha]) delete entries[fecha].foto;
+  await saveEntries(year, mes, entries);
+  if(btn){
+    btn.textContent = '📷';
+    btn.style.background = 'none';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.color = 'var(--sub)';
+    btn.title = LANG==='en' ? 'Attach a photo of the meter' : 'Adjuntar foto del medidor';
+  }
+  cerrarFotoModal();
 }
 
 // Factura real ingresada a mano por el usuario (para meses que no vienen precargados en DATA)
@@ -3016,7 +3040,7 @@ function attachMonthEvents(year, mes){
     btn.addEventListener('click', async ()=>{
       const entries = await loadEntries(year, mes);
       const fotoUrl = entries[fecha] ? entries[fecha].foto : null;
-      if(fotoUrl){ abrirFotoModal(fotoUrl); return; }
+      if(fotoUrl){ abrirFotoModal(fotoUrl, {year, mes, fecha, btn}); return; }
       const lectEl = document.querySelector(`.lect-input[data-fecha="${fecha}"]`);
       if(!lectEl || lectEl.value === ''){
         alert(LANG==='en' ? 'Enter the reading for this day first, then attach its photo.' : 'Primero ingresa la lectura de este día, luego adjunta su foto.');
@@ -3353,6 +3377,7 @@ async function cerrarSesion(){
   document.getElementById('drawerOverlay').addEventListener('click', closeDrawer);
   document.getElementById('searchIconBtn').addEventListener('click', openSearch);
   document.getElementById('fotoModalCerrarBtn').addEventListener('click', cerrarFotoModal);
+  document.getElementById('fotoModalBorrarBtn').addEventListener('click', borrarFotoDelModal);
   document.getElementById('fotoModalOverlay').addEventListener('click', (e)=>{
     if(e.target.id === 'fotoModalOverlay') cerrarFotoModal();
   });
