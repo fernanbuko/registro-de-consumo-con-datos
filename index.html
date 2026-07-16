@@ -124,10 +124,12 @@
     button{min-height:38px;}
     /* la tabla de lecturas diarias es la más ancha de toda la app: en celular
        se quita la columna "Día" (ya la puedes ver si lo necesitas en el calendario)
-       y se achican los campos, para que quepan las 4 columnas sin scroll lateral. */
+       y se achican los campos, para que quepan las 5 columnas con el mínimo de
+       scroll lateral posible. */
     .daysbox input[type=number]{width:66px; padding:5px 3px; font-size:16px;}
     .daysbox input[type=time]{width:76px; padding:5px 2px; font-size:.72rem;}
     .daysbox th, .daysbox td{padding:6px 2px; font-size:.7rem;}
+    .foto-btn{padding:3px 6px !important; font-size:.85rem !important;}
     /* En celular, las filas "etiqueta: valor" (Nombre, Dirección, etc.) se acomodan
        una debajo de otra en vez de lado a lado, para que valores largos (como una
        dirección) no queden pegados a su etiqueta. */
@@ -270,6 +272,11 @@
       <input type="text" id="searchInput" placeholder="🔍 Buscar (ej. Junio 2026)" style="width:100%;">
     </div>
     <div id="searchResults" style="flex:1; overflow-y:auto; padding:0 14px 14px;"></div>
+  </div>
+
+  <div id="fotoModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:200; align-items:center; justify-content:center; padding:20px; flex-direction:column;">
+    <button id="fotoModalCerrarBtn" style="position:absolute; top:16px; right:16px; width:auto; padding:8px 14px; background:var(--card2); color:var(--text); border:1px solid var(--border);">✕</button>
+    <img id="fotoModalImg" style="max-width:100%; max-height:85vh; border-radius:8px; object-fit:contain;">
   </div>
 </div>
 
@@ -903,6 +910,67 @@ async function saveEntries(year, mes, entries){
   await storageSet(`lecturas:${PERFIL_ACTIVO}:${year}:${mes}`, JSON.stringify(entries));
 }
 
+// Reduce el tamaño de la foto antes de subirla (menos espacio, más rápido).
+function comprimirImagen(file, maxDim, calidad){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if(w > maxDim || h > maxDim){
+          if(w >= h){ h = Math.round(h * (maxDim/w)); w = maxDim; }
+          else { w = Math.round(w * (maxDim/h)); h = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob((blob)=> blob ? resolve(blob) : reject(new Error('No se pudo procesar la imagen')), 'image/jpeg', calidad);
+      };
+      img.onerror = ()=> reject(new Error('No se pudo leer la imagen'));
+      img.src = e.target.result;
+    };
+    reader.onerror = ()=> reject(new Error('No se pudo leer el archivo'));
+    reader.readAsDataURL(file);
+  });
+}
+
+// Sube la foto del medidor a Cloudinary (gratis, sin tarjeta) y devuelve el link para
+// guardarlo junto a la lectura de ese día.
+const CLOUDINARY_CLOUD_NAME = 'zcuh5bjn';
+const CLOUDINARY_UPLOAD_PRESET = 'ehrzlu4w';
+async function subirFotoMedidor(file, fecha){
+  try{
+    const blob = await comprimirImagen(file, 1280, 0.72);
+    const formData = new FormData();
+    formData.append('file', blob);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    const resp = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      method: 'POST',
+      body: formData
+    });
+    if(!resp.ok){
+      const errData = await resp.json().catch(()=>({}));
+      throw new Error(errData.error ? errData.error.message : `HTTP ${resp.status}`);
+    }
+    const data = await resp.json();
+    return data.secure_url;
+  }catch(e){
+    console.error('Error subiendo la foto del medidor:', e);
+    alert(LANG==='en' ? "Couldn't upload the photo. Check your connection and try again." : 'No se pudo subir la foto. Revisa tu conexión e intenta de nuevo.');
+    return null;
+  }
+}
+
+function abrirFotoModal(url){
+  document.getElementById('fotoModalImg').src = url;
+  document.getElementById('fotoModalOverlay').style.display = 'flex';
+}
+function cerrarFotoModal(){
+  document.getElementById('fotoModalOverlay').style.display = 'none';
+  document.getElementById('fotoModalImg').src = '';
+}
+
 // Factura real ingresada a mano por el usuario (para meses que no vienen precargados en DATA)
 async function loadFacturaManual(year, mes){
   let v = await storageGet(`factura_manual:${PERFIL_ACTIVO}:${year}:${mes}`);
@@ -1420,7 +1488,7 @@ async function computeMonth(year, mes){
     if(changed) await saveEntries(year, mes, entries);
   }
   const days = dayList(year, mes);
-  const rows = days.map(fecha => ({fecha, lectura: entryValor(entries[fecha]), hora: entryHora(entries[fecha])}));
+  const rows = days.map(fecha => ({fecha, lectura: entryValor(entries[fecha]), hora: entryHora(entries[fecha]), foto: entries[fecha] ? entries[fecha].foto : undefined}));
   for(let i=0;i<rows.length;i++){
     if(i===0 || rows[i].lectura===null || rows[i-1].lectura===null){ rows[i].consumo=null; }
     else { rows[i].consumo = +(rows[i].lectura - rows[i-1].lectura).toFixed(2); }
@@ -1832,7 +1900,7 @@ async function renderContent(){
   if(pdfBtn) pdfBtn.style.display = currentTab==="Ajustes" ? "none" : "";
   try{
     if(currentTab==="Ajustes"){ el.innerHTML = ajustesHTML(); attachAjustesEvents(); return; }
-    if(currentTab==="Resumen Anual"){ el.innerHTML = await resumenHTML(currentYear); await resumenChart(currentYear); return; }
+    if(currentTab==="Resumen Anual"){ el.innerHTML = await resumenHTML(currentYear); await resumenChart(currentYear); attachDiasPendientesEvents(); return; }
     if(currentTab==="Tarifa Eléctrica"){ el.innerHTML = tarifaHTML(); return; }
     el.innerHTML = await monthHTML(currentYear, currentTab);
     attachMonthEvents(currentYear, currentTab);
@@ -2108,6 +2176,141 @@ function irAMesDesdeResumen(year, mes){
   navegarA(mes, year);
 }
 
+async function diasPendientesInfo(){
+  const hoy = todayISO();
+  for(const year of YEARS){
+    for(const mes of MESES){
+      const c = await computeMonth(year, mes);
+      const periodo = c.hist ? {desde: DATA[mes].desde, hasta: DATA[mes].hasta} : cycleRange(year, mes);
+      if(hoy >= periodo.desde && hoy <= periodo.hasta){
+        const faltantes = c.rows.filter(r => r.fecha <= hoy && r.lectura === null).map(r => r.fecha);
+        return {year, mes, faltantes};
+      }
+    }
+  }
+  return null;
+}
+
+async function buildDiasPendientesCard(){
+  let info;
+  try{ info = await diasPendientesInfo(); }catch(e){ info = null; }
+  const titulo = LANG==='en' ? 'Pending Days' : 'Días Pendientes';
+  if(!info || info.faltantes.length === 0){
+    return `<div class="card">
+      <h2>${titulo}</h2>
+      <div class="note">${LANG==='en' ? "You're all caught up! No missing days to enter so far this month." : '¡Estás al día! No te falta ingresar ningún día hasta hoy este mes.'}</div>
+    </div>`;
+  }
+  const {year, mes, faltantes} = info;
+  if(faltantes.length > 5){
+    return `<div class="card">
+      <h2>${titulo} — ${mesLabel(mes)}</h2>
+      <div class="note" style="color:#e8b169; margin-bottom:10px;">⚠️ ${LANG==='en' ? `You have ${faltantes.length} days missing this month.` : `Te faltan ${faltantes.length} días por ingresar este mes.`}</div>
+      <button onclick="irAMesDesdeResumen(${year}, '${mes}')" style="width:auto; padding:8px 14px;">${LANG==='en' ? `Go to ${mesLabel(mes)}` : `Ir a ${mesLabel(mes)}`}</button>
+    </div>`;
+  }
+  let filas = "";
+  faltantes.forEach(fecha=>{
+    filas += `<tr data-fecha="${fecha}">
+      <td>${fmtDate(fecha)} <span style="color:var(--sub); font-size:.85em;">${diaSemanaCorta(fecha)}</span></td>
+      <td><input type="number" step="0.01" inputmode="decimal" enterkeyhint="next" class="pend-lect-input" data-fecha="${fecha}" data-year="${year}" data-mes="${mes}" placeholder="${LANG==='en'?'Reading':'Lectura'}"></td>
+      <td><input type="time" class="pend-hora-input" data-fecha="${fecha}" data-year="${year}" data-mes="${mes}"></td>
+    </tr>`;
+  });
+  return `<div class="card" id="diasPendientesCard">
+    <h2>${titulo} — ${mesLabel(mes)}</h2>
+    <div class="note" style="margin-bottom:10px;">${LANG==='en'
+      ? `You're missing ${faltantes.length} day(s). You can fill ${faltantes.length>1?'them':'it'} in right here — it'll update in ${mesLabel(mes)} automatically.`
+      : `Te falta${faltantes.length>1?'n':''} ingresar ${faltantes.length} día${faltantes.length>1?'s':''}. Puedes escribirlo${faltantes.length>1?'s':''} aquí mismo — se actualiza solo en ${mesLabel(mes)}.`}</div>
+    <div class="daysbox"><div style="overflow-x:auto;"><table><tr><th>${LANG==='en'?'Date':'Fecha'}</th><th>${LANG==='en'?'Reading (kWh)':'Lectura (kWh)'}</th><th>${LANG==='en'?'Time':'Hora'}</th></tr>${filas}</table></div></div>
+  </div>`;
+}
+
+async function guardarFilaPendiente(fecha, year, mes){
+  const lectEl = document.querySelector(`.pend-lect-input[data-fecha="${fecha}"]`);
+  const horaEl = document.querySelector(`.pend-hora-input[data-fecha="${fecha}"]`);
+  const val = lectEl ? parseFloat(lectEl.value) : NaN;
+  const hora = horaEl ? horaEl.value : "";
+  let entries = await loadEntries(year, mes);
+  const fotoExistente = entries[fecha] ? entries[fecha].foto : undefined;
+  if(isNaN(val)){
+    delete entries[fecha];
+  } else {
+    entries[fecha] = {valor: val, hora};
+    if(fotoExistente) entries[fecha].foto = fotoExistente;
+  }
+  await saveEntries(year, mes, entries);
+}
+
+function attachDiasPendientesEvents(){
+  const card = document.getElementById('diasPendientesCard');
+  if(!card) return;
+  const filas = Array.from(card.querySelectorAll('tr[data-fecha]'));
+  const lectInputs = filas.map(f => f.querySelector('.pend-lect-input'));
+  const horaInputs = filas.map(f => f.querySelector('.pend-hora-input'));
+
+  // Guarda en segundo plano, sin reconstruir la tarjeta — así Enter puede saltar de
+  // casilla en casilla igual que en la tabla del mes, sin que el salto se corte a
+  // mitad de camino. El conteo de "días pendientes" se pone al día la próxima vez
+  // que se vuelva a mostrar Resumen Anual.
+  function guardarSinRefrescarPend(inp){
+    guardarFilaPendiente(inp.dataset.fecha, parseInt(inp.dataset.year), inp.dataset.mes)
+      .catch(err => console.error('Error guardando:', err));
+    inp.classList.toggle('hasvalue', inp.value !== '');
+  }
+
+  lectInputs.forEach((inp, idx)=>{
+    if(!inp) return;
+    inp.addEventListener('blur', ()=> guardarSinRefrescarPend(inp));
+    inp.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        guardarSinRefrescarPend(inp);
+        // Enter en Lectura -> salta directo a la Hora de la MISMA fila
+        const horaEl = horaInputs[idx];
+        if(horaEl) horaEl.focus();
+        return;
+      }
+      if((e.key === 'Backspace' || e.key === 'Delete') && inp.value === ''){
+        // Ya está vacío y vuelves a tocar borrar -> salta hacia atrás, a la Hora del día anterior
+        e.preventDefault();
+        const horaAnterior = horaInputs[idx-1];
+        if(horaAnterior) horaAnterior.focus();
+      }
+    });
+  });
+
+  horaInputs.forEach((inp, idx)=>{
+    if(!inp) return;
+    inp.addEventListener('blur', ()=> guardarSinRefrescarPend(inp));
+    inp.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        guardarSinRefrescarPend(inp);
+        // Enter en Hora -> salta directo a la Lectura de la fila SIGUIENTE
+        const nextLect = lectInputs[idx+1];
+        if(nextLect){ nextLect.focus(); nextLect.select(); }
+        return;
+      }
+      if(e.key === 'Backspace' || e.key === 'Delete'){
+        e.preventDefault();
+        if(inp.value !== ''){
+          // 1er toque: borra el campo completo de una vez (muestra --:--)
+          inp.value = '';
+          inp.dispatchEvent(new Event('input', {bubbles:true}));
+        } else {
+          // 2do toque (ya estaba vacío): salta a la Lectura de esta misma fila
+          const lectEl = lectInputs[idx];
+          if(lectEl){
+            lectEl.focus();
+            cursorAlFinalDelValor(lectEl);
+          }
+        }
+      }
+    });
+  });
+}
+
 async function resumenHTML(year){
   const esDefault = PERFIL_ACTIVO === 'default';
   const facturados = (esDefault && year===BASE_YEAR) ? MESES.filter(m => !!DATA[m]) : [];
@@ -2171,6 +2374,7 @@ async function resumenHTML(year){
       <td><span class="badge">${origen}</span></td>
     </tr>`;
   }
+  const diasPendientesHTML = await buildDiasPendientesCard();
   return `
   <div class="card">
     <h2>${LANG==='en'?'Client Info':'Ficha del Cliente'}</h2>
@@ -2181,6 +2385,7 @@ async function resumenHTML(year){
     <div class="kv"><span>${LANG==='en'?'Meter No.':'Medidor No.'}</span><span class="v">${CLIENTE.medidor||"-"}</span></div>
     ${PERFILES.length > 1 ? `<div class="note" style="margin-top:8px;">${LANG==='en'?'Edit or switch profiles in Settings.':'Edita o cambia de perfil desde Ajustes.'}</div>` : ""}
   </div>
+  ${diasPendientesHTML}
   <div class="card">
     <h2>Meses Facturados — ${year}</h2>
     <div class="kv"><span>Meses con factura real</span><span class="v blue">${facturados.length ? facturados.join(", ") : "Ninguno todavía"}</span></div>
@@ -2528,6 +2733,10 @@ async function monthHTML(year, mes){
       <td><input type="number" step="0.01" inputmode="decimal" enterkeyhint="next" class="lect-input ${r.lectura!==null?'hasvalue':''}" data-fecha="${r.fecha}" value="${val}" title="${esDecreciente ? '⚠️ Esta lectura es menor a la del día anterior — revisa si hubo un error al escribir.' : ''}"></td>
       <td><input type="time" class="hora-input ${hora?'hasvalue':''}" data-fecha="${r.fecha}" value="${hora}"></td>
       <td>${r.consumo!==null ? kwh(r.consumo) : "—"}${esInusual ? ' ⚠️' : ''}${esDecreciente ? ' ⬇️' : ''}</td>
+      <td style="text-align:center;">
+        <button class="foto-btn" data-fecha="${r.fecha}" title="${r.foto ? (LANG==='en'?'View photo':'Ver foto') : (LANG==='en'?'Attach a photo of the meter':'Adjuntar foto del medidor')}" style="width:auto; padding:4px 8px; background:${r.foto?'var(--card2)':'none'}; border:1px solid ${r.foto?'var(--ok)':'var(--border)'}; color:${r.foto?'var(--ok)':'var(--sub)'}; font-size:.95rem; border-radius:6px; cursor:pointer;">${r.foto ? '✅📷' : '📷'}</button>
+        <input type="file" accept="image/*" capture="environment" class="foto-input" data-fecha="${r.fecha}" style="display:none;">
+      </td>
     </tr>`;
   });
 
@@ -2576,7 +2785,7 @@ async function monthHTML(year, mes){
     <div class="note" style="margin-bottom:10px;">El primer día del periodo no tiene "consumo diario" propio (es solo la lectura de arranque), por eso el máximo posible es ${c.rows.length - 1}, no ${c.rows.length}.</div>
     <div id="notaInusualCard" class="note" style="color:#e8b169; margin-bottom:${analisis.fechasInusuales.length>0?'10px':'0'};">${analisis.fechasInusuales.length > 0 ? `⚠️ Se detectaron ${analisis.fechasInusuales.length} día(s) con consumo inusualmente alto (más de 50% sobre tu promedio del mes): ${analisis.fechasInusuales.map(fmtDate).join(", ")}. Revisa si quedó algo encendido esos días.` : ""}</div>
     ${c.fechasDecrecientes.length > 0 ? `<div class="note" style="color:#e8b169; margin-bottom:10px;">⬇️ La lectura de estos días es menor a la del día anterior (resaltados en naranja): ${c.fechasDecrecientes.map(fmtDate).join(", ")}. El medidor no debería bajar — probablemente sea un error de tecleo. Puedes corregirlo cuando quieras, esto es solo informativo.</div>` : ""}
-    <div class="daysbox"><div style="overflow-x:auto;"><table><tr><th>${t('fecha')}</th><th>${t('lectura_kwh')}</th><th>${t('hora')}</th><th>${t('consumo_diario')}</th></tr>${daysHTML}</table></div></div>
+    <div class="daysbox"><div style="overflow-x:auto;"><table><tr><th>${t('fecha')}</th><th>${t('lectura_kwh')}</th><th>${t('hora')}</th><th>${t('consumo_diario')}</th><th>${LANG==='en'?'Photo':'Foto'}</th></tr>${daysHTML}</table></div></div>
   </div>
   <div class="card"><h2>${t('verificacion')}</h2><div id="verifCard">${s.verifHTML}</div></div>
   <div class="card">
@@ -2672,10 +2881,12 @@ function attachMonthEvents(year, mes){
     const val = lectEl ? parseFloat(lectEl.value) : NaN;
     const hora = horaEl ? horaEl.value : "";
     let entries = await loadEntries(year, mes);
+    const fotoExistente = entries[fecha] ? entries[fecha].foto : undefined;
     if(isNaN(val)){
       delete entries[fecha];
     } else {
       entries[fecha] = {valor: val, hora};
+      if(fotoExistente) entries[fecha].foto = fotoExistente;
     }
     await saveEntries(year, mes, entries);
   }
@@ -2797,6 +3008,46 @@ function attachMonthEvents(year, mes){
   }
 
   attachStatsCardEvents(year, mes);
+
+  document.querySelectorAll('.foto-btn').forEach(btn=>{
+    const fecha = btn.dataset.fecha;
+    const fileInput = document.querySelector(`.foto-input[data-fecha="${fecha}"]`);
+    if(!fileInput) return;
+    btn.addEventListener('click', async ()=>{
+      const entries = await loadEntries(year, mes);
+      const fotoUrl = entries[fecha] ? entries[fecha].foto : null;
+      if(fotoUrl){ abrirFotoModal(fotoUrl); return; }
+      const lectEl = document.querySelector(`.lect-input[data-fecha="${fecha}"]`);
+      if(!lectEl || lectEl.value === ''){
+        alert(LANG==='en' ? 'Enter the reading for this day first, then attach its photo.' : 'Primero ingresa la lectura de este día, luego adjunta su foto.');
+        return;
+      }
+      fileInput.click();
+    });
+    fileInput.addEventListener('change', async ()=>{
+      if(!fileInput.files.length) return;
+      const file = fileInput.files[0];
+      const textoOriginal = btn.textContent;
+      btn.textContent = '⏳';
+      btn.disabled = true;
+      const url = await subirFotoMedidor(file, fecha);
+      if(url){
+        let entries = await loadEntries(year, mes);
+        if(!entries[fecha]) entries[fecha] = {};
+        entries[fecha].foto = url;
+        await saveEntries(year, mes, entries);
+        btn.textContent = '✅📷';
+        btn.style.background = 'var(--card2)';
+        btn.style.borderColor = 'var(--ok)';
+        btn.style.color = 'var(--ok)';
+        btn.title = LANG==='en' ? 'View photo' : 'Ver foto';
+      } else {
+        btn.textContent = textoOriginal;
+      }
+      btn.disabled = false;
+      fileInput.value = '';
+    });
+  });
 }
 async function monthChart(year, mes){
   destroyChart('monthChart');
@@ -3101,6 +3352,10 @@ async function cerrarSesion(){
   document.getElementById('menuHamburgerBtn').addEventListener('click', openDrawer);
   document.getElementById('drawerOverlay').addEventListener('click', closeDrawer);
   document.getElementById('searchIconBtn').addEventListener('click', openSearch);
+  document.getElementById('fotoModalCerrarBtn').addEventListener('click', cerrarFotoModal);
+  document.getElementById('fotoModalOverlay').addEventListener('click', (e)=>{
+    if(e.target.id === 'fotoModalOverlay') cerrarFotoModal();
+  });
   document.getElementById('searchOverlay').addEventListener('click', closeSearch);
   document.getElementById('searchInput').addEventListener('input', (e)=>{
     renderResultadosBusqueda(e.target.value);
