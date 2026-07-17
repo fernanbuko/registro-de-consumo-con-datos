@@ -12,26 +12,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Registro Eléctrico">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyAEMawDfNvlz7e0i3JPsDq9eIUVxhdi3o8",
-    authDomain: "registro-consumo-electrico.firebaseapp.com",
-    projectId: "registro-consumo-electrico",
-    storageBucket: "registro-consumo-electrico.firebasestorage.app",
-    messagingSenderId: "183118051451",
-    appId: "1:183118051451:web:04d0785e7ed1b423380ade"
-  };
-  let FIREBASE_OK = false;
-  try{
-    firebase.initializeApp(firebaseConfig);
-    FIREBASE_OK = true;
-  }catch(e){ console.error('No se pudo inicializar Firebase:', e); }
-</script>
 <style>
   :root{
     --bg:#0f1720; --card:#182230; --card2:#1f2b3a; --accent:#4f8ff0; --accent2:#7bd88f;
@@ -285,6 +265,27 @@
     <button id="fotoModalBorrarBtn" style="margin-top:14px; width:auto; padding:9px 16px; background:var(--card2); color:var(--danger); border:1px solid var(--border);">🗑️ Borrar esta foto</button>
   </div>
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAEMawDfNvlz7e0i3JPsDq9eIUVxhdi3o8",
+    authDomain: "registro-consumo-electrico.firebaseapp.com",
+    projectId: "registro-consumo-electrico",
+    storageBucket: "registro-consumo-electrico.firebasestorage.app",
+    messagingSenderId: "183118051451",
+    appId: "1:183118051451:web:04d0785e7ed1b423380ade"
+  };
+  let FIREBASE_OK = false;
+  try{
+    firebase.initializeApp(firebaseConfig);
+    FIREBASE_OK = true;
+  }catch(e){ console.error('No se pudo inicializar Firebase:', e); }
+</script>
 
 <script>
 // Capa de almacenamiento: usa window.storage (Claude.ai) cuando está disponible,
