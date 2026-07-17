@@ -603,6 +603,72 @@ function tarifaPromedios(){
 }
 const FIXED = { comercial:1.41, bomberos:2.41, subsidio_adulto:6.41, iva:0 };
 const SUBSIDIO_ADULTO_MONTO = 6.41; // monto observado en las facturas reales de esta cuenta
+
+// Los 221-222 cantones de Ecuador (INEC/división político-administrativa vigente),
+// para el buscador de ciudad en Datos del Cliente.
+const CIUDADES_ECUADOR = [
+  // Azuay
+  "Cuenca","Girón","Gualaceo","Nabón","Paute","Pucará","San Fernando","Santa Isabel","Sigsig","Oña","Chordeleg","El Pan","Sevilla de Oro","Guachapala","Camilo Ponce Enríquez",
+  // Bolívar
+  "Guaranda","Chillanes","Chimbo","Echeandía","San Miguel","Caluma","Las Naves",
+  // Cañar
+  "Azogues","Biblián","Cañar","La Troncal","El Tambo","Déleg","Suscal",
+  // Carchi
+  "Tulcán","Bolívar","Espejo","Mira","Montúfar","San Pedro de Huaca",
+  // Chimborazo
+  "Riobamba","Alausí","Colta","Chambo","Chunchi","Guamote","Guano","Pallatanga","Penipe","Cumandá",
+  // Cotopaxi
+  "Latacunga","La Maná","Pangua","Pujilí","Salcedo","Saquisilí","Sigchos",
+  // El Oro
+  "Machala","Arenillas","Atahualpa","Balsas","Chilla","El Guabo","Huaquillas","Marcabelí","Pasaje","Piñas","Portovelo","Santa Rosa","Zaruma","Las Lajas",
+  // Esmeraldas
+  "Esmeraldas","Atacames","Eloy Alfaro","Muisne","Quinindé","San Lorenzo","Rioverde",
+  // Galápagos
+  "San Cristóbal","Isabela","Santa Cruz",
+  // Guayas
+  "Guayaquil","Alfredo Baquerizo Moreno","Balao","Balzar","Colimes","Daule","Durán","El Empalme","El Triunfo","Milagro","Naranjal","Naranjito","Nobol","Palestina","Pedro Carbo","Samborondón","Santa Lucía","Salitre","San Jacinto de Yaguachi","Playas","Simón Bolívar","Coronel Marcelino Maridueña","Lomas de Sargentillo","Isidro Ayora","General Antonio Elizalde",
+  // Imbabura
+  "Ibarra","Antonio Ante","Cotacachi","Otavalo","Pimampiro","San Miguel de Urcuquí",
+  // Loja
+  "Loja","Calvas","Catamayo","Celica","Chaguarpamba","Espíndola","Gonzanamá","Macará","Paltas","Puyango","Saraguro","Sozoranga","Zapotillo","Pindal","Quilanga","Olmedo",
+  // Los Ríos
+  "Babahoyo","Baba","Montalvo","Puebloviejo","Quevedo","Urdaneta","Ventanas","Vinces","Palenque","Buena Fe","Valencia","Mocache","Quinsaloma",
+  // Manabí
+  "Portoviejo","Bolívar","Chone","El Carmen","Flavio Alfaro","Jipijapa","Junín","Manta","Montecristi","Paján","Pichincha","Rocafuerte","Santa Ana","Sucre","Tosagua","24 de Mayo","Pedernales","Olmedo","Puerto López","Jama","Jaramijó","San Vicente",
+  // Morona Santiago
+  "Morona","Gualaquiza","Limón Indanza","Palora","Santiago","Sucúa","Huamboya","San Juan Bosco","Taisha","Logroño","Pablo Sexto","Tiwintza",
+  // Napo
+  "Tena","Archidona","El Chaco","Quijos","Carlos Julio Arosemena Tola",
+  // Orellana
+  "Francisco de Orellana","Aguarico","La Joya de los Sachas","Loreto",
+  // Pastaza
+  "Pastaza","Mera","Santa Clara","Arajuno",
+  // Pichincha
+  "Quito","Cayambe","Mejía","Pedro Moncayo","Rumiñahui","San Miguel de los Bancos","Pedro Vicente Maldonado","Puerto Quito",
+  // Santa Elena
+  "Santa Elena","La Libertad","Salinas",
+  // Santo Domingo de los Tsáchilas
+  "Santo Domingo","La Concordia",
+  // Sucumbíos
+  "Lago Agrio","Cascales","Cuyabeno","Gonzalo Pizarro","Putumayo","Shushufindi","Sucumbíos",
+  // Tungurahua
+  "Ambato","Baños de Agua Santa","Cevallos","Mocha","Patate","Quero","San Pedro de Pelileo","Santiago de Píllaro","Tisaleo",
+  // Zamora Chinchipe
+  "Zamora","Centinela del Cóndor","Chinchipe","Nangaritza","Palanda","Paquisha","Yacuambi","Yantzaza","El Pangui",
+];
+
+// La contribución al Cuerpo de Bomberos la fija cada municipio por separado — no hay
+// una lista pública única con las tarifas exactas de los 221 cantones, así que aquí
+// solo se guardan los valores confirmados. Para cualquier otra ciudad se usa el valor
+// por defecto de esta cuenta, pero el usuario puede corregirlo a mano en Ajustes si
+// conoce el valor real de su cantón.
+const BOMBEROS_POR_CIUDAD = {
+  "Durán": 2.41,
+  "Babahoyo": 1.97, "Montalvo": 1.97, "Vinces": 1.97, "Palenque": 1.97, "Baba": 1.97,
+  "Ventanas": 1.97, "Quinsaloma": 1.97, "Puebloviejo": 1.97, "Urdaneta": 1.97,
+};
+const BOMBEROS_DEFAULT = 2.41;
+
 let ES_TERCERA_EDAD = true; // por defecto coincide con el estado actual de la cuenta (ya calificada)
 async function loadTerceraEdad(){
   let v = await storageGet(`es_tercera_edad:${PERFIL_ACTIVO}`);
@@ -617,6 +683,41 @@ async function saveTerceraEdad(val){
 }
 function aplicarTerceraEdad(){
   FIXED.subsidio_adulto = ES_TERCERA_EDAD ? SUBSIDIO_ADULTO_MONTO : 0;
+}
+
+// ---- Ciudad del cliente y la contribución de Bomberos correspondiente
+let CIUDAD = "";
+async function loadCiudad(){
+  let v = await storageGet(`ciudad:${PERFIL_ACTIVO}`);
+  CIUDAD = v || "";
+  aplicarCiudad();
+}
+async function saveCiudad(val){
+  CIUDAD = val || "";
+  await storageSet(`ciudad:${PERFIL_ACTIVO}`, CIUDAD);
+  aplicarCiudad();
+}
+
+let BOMBEROS_MANUAL = null; // si no es null, el usuario corrigió el valor a mano
+async function loadBomberosManual(){
+  let v = await storageGet(`bomberos_manual:${PERFIL_ACTIVO}`);
+  BOMBEROS_MANUAL = (v !== null && v !== undefined && v !== '' && !isNaN(parseFloat(v))) ? parseFloat(v) : null;
+  aplicarCiudad();
+}
+async function saveBomberosManual(val){
+  BOMBEROS_MANUAL = (val === null || val === '' || isNaN(parseFloat(val))) ? null : parseFloat(val);
+  await storageSet(`bomberos_manual:${PERFIL_ACTIVO}`, BOMBEROS_MANUAL === null ? '' : String(BOMBEROS_MANUAL));
+  aplicarCiudad();
+}
+
+function aplicarCiudad(){
+  if(BOMBEROS_MANUAL !== null){
+    FIXED.bomberos = BOMBEROS_MANUAL;
+  } else if(CIUDAD && BOMBEROS_POR_CIUDAD[CIUDAD] !== undefined){
+    FIXED.bomberos = BOMBEROS_POR_CIUDAD[CIUDAD];
+  } else {
+    FIXED.bomberos = BOMBEROS_DEFAULT;
+  }
 }
 
 // ---- Datos del cliente (con soporte para varios perfiles/cuentas)
@@ -654,6 +755,8 @@ async function recargarDatosPerfil(irAResumen = true){
   await loadYears();
   await loadOverrides();
   await loadTerceraEdad();
+  await loadCiudad();
+  await loadBomberosManual();
   buildFutureRanges();
   currentYear = YEARS[0] || BASE_YEAR;
   if(irAResumen) currentTab = "Resumen Anual";
@@ -690,7 +793,7 @@ async function borrarDatosDePerfil(id){
       claves.push(`meta_ahorro:${id}:${year}:${mes}`);
     }
   }
-  claves.push(`years:${id}`, `future_overrides:${id}`, `es_tercera_edad:${id}`);
+  claves.push(`years:${id}`, `future_overrides:${id}`, `es_tercera_edad:${id}`, `ciudad:${id}`, `bomberos_manual:${id}`);
   await storageDeleteMuchos(claves);
 }
 
@@ -1087,6 +1190,8 @@ async function exportarJSONDePerfil(perfilId){
   await loadYears();
   await loadOverrides();
   await loadTerceraEdad();
+  await loadCiudad();
+  await loadBomberosManual();
 
   await exportarJSON();
 
@@ -2032,6 +2137,17 @@ function ajustesHTML(){
     <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">${LANG==='en'?'Address':'Dirección'}</label>
     <input type="text" id="clienteDireccion" class="cliente-field" value="${CLIENTE.direccion||''}" style="width:100%; margin-bottom:10px; padding:8px 10px; border-radius:6px; border:1px solid var(--border); background:var(--card2); color:var(--text);">
 
+    <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">${LANG==='en'?'City / Cantón':'Ciudad / Cantón'}</label>
+    <input type="text" id="clienteCiudad" list="ciudadesDatalist" placeholder="${LANG==='en'?'Start typing your city...':'Empieza a escribir tu ciudad...'}" value="${CIUDAD||''}" style="width:100%; margin-bottom:6px; padding:8px 10px; border-radius:6px; border:1px solid var(--border); background:var(--card2); color:var(--text);">
+    <datalist id="ciudadesDatalist">
+      ${CIUDADES_ECUADOR.map(c => `<option value="${c}"></option>`).join('')}
+    </datalist>
+    <div class="note" style="margin-bottom:10px;">${LANG==='en'
+      ? "Each municipality sets its own Fire Dept. fee, and there's no single public list with the exact value for all 221 cantones — so this is an estimate. If you know your city's real amount, you can correct it below."
+      : "Cada municipio pone su propia tarifa de Bomberos, y no existe una lista pública con el valor exacto de los 221 cantones — así que esto es un estimado. Si conoces el valor real de tu ciudad, puedes corregirlo abajo."}</div>
+    <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">${LANG==='en' ? `Fire Dept. fee (currently applying $${FIXED.bomberos.toFixed(2)})` : `Contribución Bomberos (aplicando $${FIXED.bomberos.toFixed(2)} actualmente)`}</label>
+    <input type="number" step="0.01" id="clienteBomberosManual" placeholder="${LANG==='en'?'Leave blank to use the estimate above':'Déjalo vacío para usar el estimado de arriba'}" value="${BOMBEROS_MANUAL!==null ? BOMBEROS_MANUAL : ''}" style="width:100%; margin-bottom:14px; padding:8px 10px; border-radius:6px; border:1px solid var(--border); background:var(--card2); color:var(--text);">
+
     <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">${LANG==='en'?'Account number':'Cuenta Contrato'}</label>
     <input type="text" id="clienteCuenta" class="cliente-field" value="${CLIENTE.cuenta||''}" style="width:100%; margin-bottom:10px; padding:8px 10px; border-radius:6px; border:1px solid var(--border); background:var(--card2); color:var(--text);">
 
@@ -2186,6 +2302,8 @@ function attachAjustesEvents(){
       cuenta: document.getElementById('clienteCuenta').value,
       medidor: document.getElementById('clienteMedidor').value,
     });
+    await saveCiudad(document.getElementById('clienteCiudad').value.trim());
+    await saveBomberosManual(document.getElementById('clienteBomberosManual').value);
     navegarA("Resumen Anual");
   });
   nuevoPerfilBtn.addEventListener('click', async ()=>{
@@ -2568,7 +2686,7 @@ function tarifaHTML(){
     <div class="estado pend">⚠️ Los promedios de esta página se calcularon <b>una sola vez</b> con las 6 primeras facturas reales (Enero-Junio 2026) y <b>no cambian</b> aunque agregues o factures más meses — son la base fija que usa el Simulador para todos los meses futuros.</div>
     <h3>Componentes fijos (no dependen del kWh)</h3>
     <div class="kv"><span>Comercialización mensual</span><span class="v blue">${money(FIXED.comercial)}</span></div>
-    <div class="kv"><span>Contribución Bomberos Durán</span><span class="v blue">${money(FIXED.bomberos)}</span></div>
+    <div class="kv"><span>${LANG==='en' ? `Fire Dept. Fee${CIUDAD ? ' — '+CIUDAD : ''}` : `Contribución Bomberos${CIUDAD ? ' — '+CIUDAD : ''}`}</span><span class="v blue">${money(FIXED.bomberos)}</span></div>
     ${ES_TERCERA_EDAD ? `<div class="kv"><span>Subsidio Ley Adulto Mayor (se resta)</span><span class="v blue">${money(SUBSIDIO_ADULTO_MONTO)}</span></div>` : `<div class="note">Este perfil no está marcado como Adulto Mayor, así que no se aplica el subsidio de Ley Adulto Mayor. Puedes cambiar esto en Ajustes → Datos del Cliente.</div>`}
     <div class="kv"><span>I.V.A. aplicable</span><span class="v blue">${FIXED.iva*100}%</span></div>
 
@@ -3251,6 +3369,8 @@ async function continuarDespuesDeAuth(){
   await loadCliente();
   await loadDateFormat();
   await loadTerceraEdad();
+  await loadCiudad();
+  await loadBomberosManual();
   await loadPais();
   await loadLang();
   await loadTheme();
@@ -3469,6 +3589,10 @@ async function borrarCuenta(){
   try{ modoSinCuenta = localStorage.getItem('modo_sin_cuenta') === 'true'; }catch(e){}
 
   if(FIREBASE_OK && !modoSinCuenta){
+    // Se fuerza explícitamente que la sesión quede guardada en este dispositivo/navegador,
+    // para que al cerrar y volver a abrir la app no pida iniciar sesión de nuevo —
+    // directamente muestra la pantalla de elegir perfil.
+    try{ await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL); }catch(e){ console.error('No se pudo fijar la persistencia de sesión:', e); }
     firebase.auth().onAuthStateChanged(async (user)=>{
       if(user){
         FIREBASE_UID = user.uid;
