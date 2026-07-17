@@ -3373,7 +3373,6 @@ async function cargarDatosDeFirebase(){
 
 async function continuarDespuesDeAuth(){
   document.getElementById('authScreen').style.display = 'none';
-  document.getElementById('landingScreen').style.display = 'flex';
   await loadCliente();
   await loadDateFormat();
   await loadTerceraEdad();
@@ -3383,6 +3382,11 @@ async function continuarDespuesDeAuth(){
   await loadLang();
   await loadTheme();
   mostrarPantallaBienvenida();
+  // El rayo con el giro de carga se queda en pantalla hasta este punto — recién ahora
+  // que los perfiles ya están listos para mostrarse, se revela la pantalla de elegir
+  // perfil de una sola vez, sin que se vea vacía ni por un instante.
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('landingScreen').style.display = 'flex';
   try{ history.replaceState({screen:'landing'}, '', '#'); }catch(e){ /* se ignora */ }
 }
 
@@ -3606,17 +3610,16 @@ async function borrarCuenta(){
     // formulario de login de refilón si sí hay una sesión guardada).
     try{ await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL); }catch(e){ console.error('No se pudo fijar la persistencia de sesión:', e); }
     firebase.auth().onAuthStateChanged(async (user)=>{
-      document.getElementById('loadingScreen').style.display = 'none';
       if(user){
         FIREBASE_UID = user.uid;
         await cargarDatosDeFirebase();
         await continuarDespuesDeAuth();
       } else {
+        document.getElementById('loadingScreen').style.display = 'none';
         document.getElementById('authScreen').style.display = 'flex';
       }
     });
   } else {
-    document.getElementById('loadingScreen').style.display = 'none';
     await continuarDespuesDeAuth();
   }
 
