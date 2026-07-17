@@ -171,7 +171,14 @@
 </style>
 </head>
 <body>
-<div id="authScreen" style="display:flex; min-height:100vh; align-items:center; justify-content:center; padding:20px;">
+<div id="loadingScreen" style="display:flex; min-height:100vh; align-items:center; justify-content:center; padding:20px;">
+  <div style="text-align:center;">
+    <div class="landing-bolt">⚡</div>
+    <div style="width:28px; height:28px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; margin:14px auto 0; animation:girar 0.8s linear infinite;"></div>
+  </div>
+</div>
+<style>@keyframes girar{ to{ transform:rotate(360deg); } }</style>
+<div id="authScreen" style="display:none; min-height:100vh; align-items:center; justify-content:center; padding:20px;">
   <div style="max-width:380px; width:100%;" class="landing-card">
     <div style="text-align:center;">
       <div class="landing-bolt">⚡</div>
@@ -192,13 +199,13 @@
     <label style="font-size:.78rem; color:var(--sub); display:block; margin:10px 0 4px;">Contraseña</label>
     <div style="position:relative;">
       <input type="password" id="authPassword" placeholder="Mínimo 6 caracteres" style="width:100%; padding-right:44px;" autocomplete="current-password">
-      <button type="button" id="authVerPasswordBtn" title="Mostrar/ocultar contraseña" style="position:absolute; right:2px; top:2px; bottom:2px; width:38px; background:none; border:none; color:var(--sub); cursor:pointer; padding:0; font-size:1rem;">👁️</button>
+      <button type="button" id="authVerPasswordBtn" title="Mostrar/ocultar contraseña" style="position:absolute; right:0; top:0; bottom:0; width:42px; background:none; border:none; color:#6b7280; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg></button>
     </div>
     <div id="authConfirmWrap" style="display:none;">
       <label style="font-size:.78rem; color:var(--sub); display:block; margin:10px 0 4px;">Confirmar contraseña</label>
       <div style="position:relative;">
         <input type="password" id="authPasswordConfirm" placeholder="Escribe la misma contraseña" style="width:100%; padding-right:44px;" autocomplete="new-password">
-        <button type="button" id="authVerPasswordConfirmBtn" title="Mostrar/ocultar contraseña" style="position:absolute; right:2px; top:2px; bottom:2px; width:38px; background:none; border:none; color:var(--sub); cursor:pointer; padding:0; font-size:1rem;">👁️</button>
+        <button type="button" id="authVerPasswordConfirmBtn" title="Mostrar/ocultar contraseña" style="position:absolute; right:0; top:0; bottom:0; width:42px; background:none; border:none; color:#6b7280; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg></button>
       </div>
     </div>
     <div class="note" id="authError" style="color:var(--danger); display:none; margin-top:8px;"></div>
@@ -3492,13 +3499,15 @@ async function borrarCuenta(){
     authError.style.display = 'block';
   }
 
+  const ICONO_OJO_ABIERTO = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const ICONO_OJO_CERRADO = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 11 7 11 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 1 12s4 7 11 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>';
   function wireVerPassword(btnId, inputId){
     const btn = document.getElementById(btnId);
     const inp = document.getElementById(inputId);
     btn.addEventListener('click', ()=>{
       const oculto = inp.type === 'password';
       inp.type = oculto ? 'text' : 'password';
-      btn.textContent = oculto ? '🙈' : '👁️';
+      btn.innerHTML = oculto ? ICONO_OJO_CERRADO : ICONO_OJO_ABIERTO;
     });
   }
   wireVerPassword('authVerPasswordBtn', 'authPassword');
@@ -3592,9 +3601,12 @@ async function borrarCuenta(){
   if(FIREBASE_OK && !modoSinCuenta){
     // Se fuerza explícitamente que la sesión quede guardada en este dispositivo/navegador,
     // para que al cerrar y volver a abrir la app no pida iniciar sesión de nuevo —
-    // directamente muestra la pantalla de elegir perfil.
+    // directamente muestra la pantalla de elegir perfil. Mientras se confirma si hay
+    // sesión o no, se queda en la pantalla de carga neutra (nunca se llega a ver el
+    // formulario de login de refilón si sí hay una sesión guardada).
     try{ await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL); }catch(e){ console.error('No se pudo fijar la persistencia de sesión:', e); }
     firebase.auth().onAuthStateChanged(async (user)=>{
+      document.getElementById('loadingScreen').style.display = 'none';
       if(user){
         FIREBASE_UID = user.uid;
         await cargarDatosDeFirebase();
@@ -3604,6 +3616,7 @@ async function borrarCuenta(){
       }
     });
   } else {
+    document.getElementById('loadingScreen').style.display = 'none';
     await continuarDespuesDeAuth();
   }
 
