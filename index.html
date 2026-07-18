@@ -2463,6 +2463,10 @@ async function buildDiasPendientesCard(){
       <td>${fmtDate(fecha)} <span style="color:var(--sub); font-size:.85em;">${diaSemanaCorta(fecha)}</span></td>
       <td><input type="number" step="0.01" inputmode="decimal" enterkeyhint="next" class="pend-lect-input" data-fecha="${fecha}" data-year="${year}" data-mes="${mes}" placeholder="${LANG==='en'?'Reading':'Lectura'}"></td>
       <td><input type="time" class="pend-hora-input" data-fecha="${fecha}" data-year="${year}" data-mes="${mes}"></td>
+      <td style="text-align:center;">
+        <button class="pend-foto-btn" data-fecha="${fecha}" data-year="${year}" data-mes="${mes}" title="${LANG==='en'?'Attach a photo of the meter':'Adjuntar foto del medidor'}" style="width:auto; padding:4px 8px; background:none; border:1px solid var(--border); color:var(--sub); font-size:.95rem; border-radius:6px; cursor:pointer;">📷</button>
+        <input type="file" accept="image/*" capture="environment" class="pend-foto-input" data-fecha="${fecha}" data-year="${year}" data-mes="${mes}" style="display:none;">
+      </td>
     </tr>`;
   });
   return `<div class="card" id="diasPendientesCard">
@@ -2470,7 +2474,7 @@ async function buildDiasPendientesCard(){
     <div class="note" style="margin-bottom:10px;">${LANG==='en'
       ? `You're missing ${faltantes.length} day(s). You can fill ${faltantes.length>1?'them':'it'} in right here — it'll update in ${mesLabel(mes)} automatically.`
       : `Te falta${faltantes.length>1?'n':''} ingresar ${faltantes.length} día${faltantes.length>1?'s':''}. Puedes escribirlo${faltantes.length>1?'s':''} aquí mismo — se actualiza solo en ${mesLabel(mes)}.`}</div>
-    <div class="daysbox"><div style="overflow-x:auto;"><table><tr><th>${LANG==='en'?'Date':'Fecha'}</th><th>${LANG==='en'?'Reading (kWh)':'Lectura (kWh)'}</th><th>${LANG==='en'?'Time':'Hora'}</th></tr>${filas}</table></div></div>
+    <div class="daysbox"><div style="overflow-x:auto;"><table><tr><th>${LANG==='en'?'Date':'Fecha'}</th><th>${LANG==='en'?'Reading (kWh)':'Lectura (kWh)'}</th><th>${LANG==='en'?'Time':'Hora'}</th><th>${LANG==='en'?'Photo':'Foto'}</th></tr>${filas}</table></div></div>
   </div>`;
 }
 
@@ -2555,6 +2559,43 @@ function attachDiasPendientesEvents(){
           }
         }
       }
+    });
+  });
+
+  card.querySelectorAll('.pend-foto-btn').forEach(btn=>{
+    const fecha = btn.dataset.fecha;
+    const year = parseInt(btn.dataset.year);
+    const mes = btn.dataset.mes;
+    const fileInput = card.querySelector(`.pend-foto-input[data-fecha="${fecha}"]`);
+    if(!fileInput) return;
+    btn.addEventListener('click', async ()=>{
+      const entries = await loadEntries(year, mes);
+      const fotoUrl = entries[fecha] ? entries[fecha].foto : null;
+      if(fotoUrl){ abrirFotoModal(fotoUrl, {year, mes, fecha, btn}); return; }
+      fileInput.click();
+    });
+    fileInput.addEventListener('change', async ()=>{
+      if(!fileInput.files.length) return;
+      const file = fileInput.files[0];
+      const textoOriginal = btn.textContent;
+      btn.textContent = '⏳';
+      btn.disabled = true;
+      const url = await subirFotoMedidor(file, fecha);
+      if(url){
+        let entries = await loadEntries(year, mes);
+        if(!entries[fecha]) entries[fecha] = {};
+        entries[fecha].foto = url;
+        await saveEntries(year, mes, entries);
+        btn.textContent = '✅📷';
+        btn.style.background = 'var(--card2)';
+        btn.style.borderColor = 'var(--ok)';
+        btn.style.color = 'var(--ok)';
+        btn.title = LANG==='en' ? 'View photo' : 'Ver foto';
+      } else {
+        btn.textContent = textoOriginal;
+      }
+      btn.disabled = false;
+      fileInput.value = '';
     });
   });
 }
