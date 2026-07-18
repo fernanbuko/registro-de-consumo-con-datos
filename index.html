@@ -1114,12 +1114,21 @@ function preprocesarParaOCR(img, umbral, recorte){
     sx = Math.round(W * (recorte.x !== undefined ? recorte.x : (1 - recorte.ancho) / 2));
     sy = Math.round(H * (recorte.y !== undefined ? recorte.y : recorte.desdeY));
   }
+  // Se agranda el recorte antes de analizarlo — los dígitos de una pantalla pequeña
+  // se reconocen mucho mejor con más resolución de trabajo, sobre todo si el recorte
+  // en sí venía chico. Se limita el resultado final a un ancho razonable para no
+  // tardar de más.
+  const anchoObjetivo = 900;
+  const escala = recorte ? Math.min(4, Math.max(1, anchoObjetivo / sw)) : 1;
+  const dw = Math.round(sw * escala), dh = Math.round(sh * escala);
   const canvas = document.createElement('canvas');
-  canvas.width = sw;
-  canvas.height = sh;
+  canvas.width = dw;
+  canvas.height = dh;
   const ctx = canvas.getContext('2d');
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
-  const imageData = ctx.getImageData(0, 0, sw, sh);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
+  const imageData = ctx.getImageData(0, 0, dw, dh);
   const data = imageData.data;
   for(let i=0; i<data.length; i+=4){
     const gris = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
@@ -1222,7 +1231,7 @@ async function leerLecturaDeFoto(file, recorteManual){
     const recortesAIntentar = recorteManual
       ? [recorteManual]
       : [null, { ancho: 0.7, alto: 0.35, desdeY: 0.22 }];
-    const umbralesAIntentar = [120, 160];
+    const umbralesAIntentar = [100, 130, 160, 190];
     const modosAIntentar = ['7', '6'];
     let mejorNumero = null;
     busqueda:
