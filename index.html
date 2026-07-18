@@ -2730,19 +2730,30 @@ function attachDiasPendientesEvents(){
       }
       btn.disabled = false;
       fileInput.value = '';
+      let seSugirioAlgo = false;
       if(lecturaDetectada){
         const lectEl = card.querySelector(`.pend-lect-input[data-fecha="${fecha}"]`);
         if(lectEl && lectEl.value === ''){
           lectEl.value = lecturaDetectada;
           lectEl.style.borderColor = '#e8b169';
+          lectEl.classList.add('hasvalue');
           lectEl.title = LANG==='en' ? 'Auto-detected from the photo — please verify before saving.' : 'Detectado automáticamente de la foto — verifica antes de guardar.';
+          seSugirioAlgo = true;
         }
       }
       if(horaDetectada){
         const horaEl = card.querySelector(`.pend-hora-input[data-fecha="${fecha}"]`);
         if(horaEl && horaEl.value === ''){
           horaEl.value = horaDetectada;
+          horaEl.classList.add('hasvalue');
+          seSugirioAlgo = true;
         }
+      }
+      // Importante: llenar el campo con JS no dispara el guardado normal (que ocurre
+      // al salir del campo) — así que si se sugirió algo, se guarda de una vez, para
+      // que no se pierda si el usuario se va sin tocar la casilla.
+      if(seSugirioAlgo){
+        await guardarFilaPendiente(fecha, year, mes);
       }
     });
   });
@@ -3505,19 +3516,32 @@ function attachMonthEvents(year, mes){
       }
       btn.disabled = false;
       fileInput.value = '';
+      let seSugirioAlgo = false;
       if(lecturaDetectada){
         const lectEl = document.querySelector(`.lect-input[data-fecha="${fecha}"]`);
         if(lectEl && lectEl.value === ''){
           lectEl.value = lecturaDetectada;
           lectEl.style.borderColor = '#e8b169';
+          lectEl.classList.add('hasvalue');
           lectEl.title = LANG==='en' ? 'Auto-detected from the photo — please verify before saving.' : 'Detectado automáticamente de la foto — verifica antes de guardar.';
+          seSugirioAlgo = true;
         }
       }
       if(horaDetectada){
         const horaEl = document.querySelector(`.hora-input[data-fecha="${fecha}"]`);
         if(horaEl && horaEl.value === ''){
           horaEl.value = horaDetectada;
+          horaEl.classList.add('hasvalue');
+          seSugirioAlgo = true;
         }
+      }
+      // Importante: llenar el campo con JS no dispara el guardado normal (que ocurre
+      // al salir del campo) — así que si se sugirió algo, se guarda de una vez, para
+      // que no se pierda si el usuario se va sin tocar la casilla.
+      if(seSugirioAlgo){
+        await saveRow(fecha);
+        actualizarStatsEnVivo(year, mes);
+        updateConsumoCell(lectInputs.findIndex(i => i && i.dataset.fecha === fecha));
       }
     });
   });
