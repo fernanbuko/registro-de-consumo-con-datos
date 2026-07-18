@@ -1087,18 +1087,69 @@ function cargarTesseract(){
 // Intenta leer el número del medidor en la foto. No es 100% confiable (los medidores
 // mecánicos de rueditas son difíciles de leer para cualquier OCR), así que esto solo
 // se usa como SUGERENCIA — el usuario siempre puede corregirla antes de guardar.
+// Convierte la foto a blanco y negro puro (alto contraste), resaltando los dígitos
+// del display y quitando reflejos/sombras — esto mejora bastante la lectura del OCR
+// en pantallas digitales.
+function preprocesarParaOCR(img, umbral){
+  const canvas = document.createElement('canvas');
+  canvas.width = img.naturalWidth || img.width;
+  canvas.height = img.naturalHeight || img.height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  for(let i=0; i<data.length; i+=4){
+    const gris = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
+    const valor = gris > umbral ? 255 : 0;
+    data[i] = data[i+1] = data[i+2] = valor;
+  }
+  ctx.putImageData(imageData, 0, 0);
+  return canvas;
+}
+function cargarImagenDesdeArchivo(file){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = ()=>{ URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error('No se pudo cargar la imagen')); };
+    img.src = url;
+  });
+}
+
 async function leerLecturaDeFoto(file){
+  let worker;
   try{
     await cargarTesseract();
-    const resultado = await Tesseract.recognize(file, 'eng');
-    const texto = resultado && resultado.data ? resultado.data.text : '';
-    const numeros = (texto.match(/\d+/g) || []).filter(n => n.length >= 3 && n.length <= 8);
-    if(numeros.length === 0) return null;
-    numeros.sort((a,b)=> b.length - a.length); // el número más largo suele ser la lectura completa
-    return numeros[0];
+    const img = await cargarImagenDesdeArchivo(file);
+    worker = await Tesseract.createWorker('eng');
+    // Solo dígitos — evita que confunda letras/símbolos con números, que es el error
+    // más común al leer el display de un medidor.
+    await worker.setParameters({ tessedit_char_whitelist: '0123456789' });
+    // Se prueban un par de umbrales de contraste (para distinta luz/reflejos) y un par
+    // de formas de "leer" la imagen (7=línea única, 6=bloque uniforme).
+    const umbralesAIntentar = [120, 160];
+    const modosAIntentar = ['7', '6'];
+    let mejorNumero = null;
+    for(const umbral of umbralesAIntentar){
+      const canvasProcesado = preprocesarParaOCR(img, umbral);
+      for(const psm of modosAIntentar){
+        await worker.setParameters({ tessedit_pageseg_mode: psm });
+        const { data } = await worker.recognize(canvasProcesado);
+        const numeros = (data.text.match(/\d+/g) || []).filter(n => n.length >= 3 && n.length <= 8);
+        if(numeros.length > 0){
+          numeros.sort((a,b)=> b.length - a.length);
+          mejorNumero = numeros[0];
+          break;
+        }
+      }
+      if(mejorNumero) break;
+    }
+    return mejorNumero;
   }catch(e){
     console.error('No se pudo leer la foto con OCR:', e);
     return null;
+  }finally{
+    if(worker){ try{ await worker.terminate(); }catch(e){} }
   }
 }
 // Obtiene la hora en la que se tomó la foto, a partir de la fecha de modificación del
