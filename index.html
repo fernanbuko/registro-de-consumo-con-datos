@@ -3286,11 +3286,6 @@ function attachMonthEvents(year, mes){
       const entries = await loadEntries(year, mes);
       const fotoUrl = entries[fecha] ? entries[fecha].foto : null;
       if(fotoUrl){ abrirFotoModal(fotoUrl, {year, mes, fecha, btn}); return; }
-      const lectEl = document.querySelector(`.lect-input[data-fecha="${fecha}"]`);
-      if(!lectEl || lectEl.value === ''){
-        alert(LANG==='en' ? 'Enter the reading for this day first, then attach its photo.' : 'Primero ingresa la lectura de este día, luego adjunta su foto.');
-        return;
-      }
       fileInput.click();
     });
     fileInput.addEventListener('change', async ()=>{
