@@ -797,6 +797,7 @@ async function borrarDatosDePerfil(id){
     for(const mes of MESES){
       claves.push(`lecturas:${id}:${year}:${mes}`);
       claves.push(`factura_manual:${id}:${year}:${mes}`);
+      claves.push(`factura_foto:${id}:${year}:${mes}`);
       claves.push(`subsidio_extra:${id}:${year}:${mes}`);
       claves.push(`meta_ahorro:${id}:${year}:${mes}`);
     }
@@ -1132,6 +1133,42 @@ async function loadFacturaManual(year, mes){
 }
 async function saveFacturaManual(year, mes, obj){
   await storageSet(`factura_manual:${PERFIL_ACTIVO}:${year}:${mes}`, JSON.stringify(obj));
+}
+
+// Foto o PDF de la factura de ese mes (respaldo documental, separado del monto en dólares
+// de factura_manual). Se guarda como {url, tipo:'image'|'pdf'}.
+async function loadFacturaFoto(year, mes){
+  let v = await storageGet(`factura_foto:${PERFIL_ACTIVO}:${year}:${mes}`);
+  return v ? JSON.parse(v) : null;
+}
+async function saveFacturaFoto(year, mes, obj){
+  if(obj === null){ await storageDelete(`factura_foto:${PERFIL_ACTIVO}:${year}:${mes}`); }
+  else{ await storageSet(`factura_foto:${PERFIL_ACTIVO}:${year}:${mes}`, JSON.stringify(obj)); }
+}
+// Sube la factura (foto o PDF) a Cloudinary, igual que la foto del medidor, y devuelve
+// {url, tipo}. resource_type=auto deja que Cloudinary detecte si es imagen o PDF.
+async function subirFacturaArchivo(file){
+  try{
+    const esPdf = file.type === 'application/pdf';
+    const blob = esPdf ? file : await comprimirImagen(file, 1600, 0.75);
+    const formData = new FormData();
+    formData.append('file', blob, esPdf ? 'factura.pdf' : 'factura.jpg');
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    const resp = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
+      method: 'POST',
+      body: formData
+    });
+    if(!resp.ok){
+      const errData = await resp.json().catch(()=>({}));
+      throw new Error(errData.error ? errData.error.message : `HTTP ${resp.status}`);
+    }
+    const data = await resp.json();
+    return { url: data.secure_url, tipo: esPdf ? 'pdf' : 'image' };
+  }catch(e){
+    console.error('Error subiendo la factura:', e);
+    alert(LANG==='en' ? "Couldn't upload the invoice. Check your connection and try again." : 'No se pudo subir la factura. Revisa tu conexión e intenta de nuevo.');
+    return null;
+  }
 }
 
 // Subsidio/compensación extraordinaria del gobierno para un mes puntual (se resta del total estimado)
@@ -1471,7 +1508,8 @@ async function construirReportePDF(){
 
     for(const mes of MESES){
       const d = detalles[mes];
-      if(d.filled.length===0) continue;
+      const facturaFoto = await loadFacturaFoto(year, mes);
+      if(d.filled.length===0 && !facturaFoto) continue;
       html += `<h3>${mes} ${year}</h3>`;
       html += `<div class="destacado">
           <b>Consumo Total: ${kwh(d.c.consumoIngresado)}</b> &nbsp;·&nbsp;
@@ -1482,16 +1520,27 @@ async function construirReportePDF(){
       html += d.detalleFactura || '<div class="small">Sin factura real todavía.</div>';
       html += `<div class="small" style="margin-top:10px; font-weight:bold;">Simulador con Tarifa Referencial</div>`;
       html += d.detalleSimulador || '<div class="small">Sin datos suficientes.</div>';
-      html += `<div class="small" style="margin-top:10px; font-weight:bold;">Lecturas registradas</div>`;
-      if(d.analisis.fechasInusuales.length){
-        html += `<div class="small" style="color:#b45309; font-weight:bold;">⚠️ Días con consumo inusualmente alto (más de 50% sobre el promedio del mes): ${d.analisis.fechasInusuales.map(fmtDate).join(", ")}</div>`;
+      if(d.filled.length){
+        html += `<div class="small" style="margin-top:10px; font-weight:bold;">Lecturas registradas</div>`;
+        if(d.analisis.fechasInusuales.length){
+          html += `<div class="small" style="color:#b45309; font-weight:bold;">⚠️ Días con consumo inusualmente alto (más de 50% sobre el promedio del mes): ${d.analisis.fechasInusuales.map(fmtDate).join(", ")}</div>`;
+        }
+        html += `<table><tr><th>Fecha</th><th>Día</th><th>Hora</th><th>Lectura (kWh)</th><th>Consumo diario</th></tr>`;
+        d.filled.forEach(r=>{
+          const esInusual = d.analisis.fechasInusuales.includes(r.fecha);
+          html += `<tr${esInusual ? ' style="background:#fde8e8;"' : ''}><td>${fmtDate(r.fecha)}</td><td>${diaSemana(r.fecha)}</td><td>${r.hora||"-"}</td><td>${r.lectura.toFixed(2)}</td><td>${r.consumo!==null?r.consumo.toFixed(2):"-"}${esInusual?' ⚠️':''}</td></tr>`;
+        });
+        html += `</table>`;
       }
-      html += `<table><tr><th>Fecha</th><th>Día</th><th>Hora</th><th>Lectura (kWh)</th><th>Consumo diario</th></tr>`;
-      d.filled.forEach(r=>{
-        const esInusual = d.analisis.fechasInusuales.includes(r.fecha);
-        html += `<tr${esInusual ? ' style="background:#fde8e8;"' : ''}><td>${fmtDate(r.fecha)}</td><td>${diaSemana(r.fecha)}</td><td>${r.hora||"-"}</td><td>${r.lectura.toFixed(2)}</td><td>${r.consumo!==null?r.consumo.toFixed(2):"-"}${esInusual?' ⚠️':''}</td></tr>`;
-      });
-      html += `</table>`;
+
+      if(facturaFoto){
+        html += `<div class="small" style="margin-top:10px; font-weight:bold;">Factura Adjunta</div>`;
+        if(facturaFoto.tipo === 'image'){
+          html += `<img src="${facturaFoto.url}" style="max-width:100%; max-height:500px; margin-top:6px; border:1px solid #ccc; border-radius:6px;">`;
+        } else {
+          html += `<div class="small">Se adjuntó un PDF de la factura de este mes: <a href="${facturaFoto.url}" target="_blank">Ver factura (PDF)</a></div>`;
+        }
+      }
     }
 
     html += chartCanvasHTML(`chartYear${year}`, `Consumo Mensual ${year} (kWh)`);
@@ -1617,6 +1666,17 @@ async function construirReporteMes(year, mes){
     html += chartCanvasHTML('chartMes', `Consumo Diario — ${mes} ${year}`);
     html += chartScriptTag('chartMes', chartLabels, chartData, "kWh/día");
   }
+
+  const facturaFoto = await loadFacturaFoto(year, mes);
+  if(facturaFoto){
+    html += `<h2>Factura Adjunta</h2>`;
+    if(facturaFoto.tipo === 'image'){
+      html += `<img src="${facturaFoto.url}" style="max-width:100%; max-height:600px; border:1px solid #ccc; border-radius:6px;">`;
+    } else {
+      html += `<div class="small">Se adjuntó un PDF de la factura de este mes: <a href="${facturaFoto.url}" target="_blank">Ver factura (PDF)</a></div>`;
+    }
+  }
+
   html += `</body></html>`;
   return html;
 }
@@ -1790,6 +1850,7 @@ async function deleteYear(year){
   for(const mes of MESES){
     claves.push(`lecturas:${PERFIL_ACTIVO}:${year}:${mes}`);
     claves.push(`factura_manual:${PERFIL_ACTIVO}:${year}:${mes}`);
+    claves.push(`factura_foto:${PERFIL_ACTIVO}:${year}:${mes}`);
     claves.push(`subsidio_extra:${PERFIL_ACTIVO}:${year}:${mes}`);
     claves.push(`meta_ahorro:${PERFIL_ACTIVO}:${year}:${mes}`);
     delete FUTURE_OVERRIDES[`${year}:${mes}`];
@@ -2849,7 +2910,8 @@ async function buildStatsSections(year, mes){
   const faltaHoyHTML = faltaHoy ? `<div class="estado pend" style="margin-top:10px;">📅 Todavía no has ingresado la lectura de hoy (${fmtDate(hoy)}). ¡No dejes que se te acumule!</div>` : "";
   const calendarHTML = buildCalendarHTML(c, analisis);
 
-  return {c, hist, manual, subsidioExtra, meta, analisis, comparacionMes, tieneFacturaManual, verifHTML, realHTML, simHTML, proyeccionHTML, hoy, faltaHoy, faltaHoyHTML, calendarHTML};
+  const facturaFoto = await loadFacturaFoto(year, mes);
+  return {c, hist, manual, subsidioExtra, meta, analisis, comparacionMes, tieneFacturaManual, verifHTML, realHTML, simHTML, proyeccionHTML, hoy, faltaHoy, faltaHoyHTML, calendarHTML, facturaFoto};
 }
 
 // Vuelve a calcular y refrescar SOLO las tarjetas de Verificación, Facturación/Simulador
@@ -2993,8 +3055,28 @@ async function monthHTML(year, mes){
     <div class="card"><div id="realCard">${s.realHTML || '<div class="note">Este mes aún no tiene factura real todavía.</div>'}</div></div>
     <div class="card"><div id="simCard">${s.simHTML}</div></div>
   </div>
+  <div class="card" id="facturaFotoCard">${facturaFotoCardHTML(s.facturaFoto)}</div>
   <div class="card"><h2>Consumo diario</h2><div style="position:relative; height:220px;"><canvas id="monthChart"></canvas></div></div>
   `;
+}
+
+function facturaFotoCardHTML(facturaFoto){
+  const titulo = LANG==='en' ? 'Invoice File' : 'Factura del Mes (Archivo)';
+  if(facturaFoto){
+    return `
+    <h2>${titulo}</h2>
+    <div class="note" style="margin-bottom:10px;">${LANG==='en' ? "This month's invoice is saved as a backup." : 'La factura de este mes está guardada como respaldo.'}</div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+      <button id="verFacturaArchivoBtn" style="width:auto; padding:8px 14px;">${facturaFoto.tipo==='pdf' ? '📄' : '🖼️'} ${LANG==='en'?'View invoice':'Ver factura'}</button>
+      <button id="borrarFacturaArchivoBtn" style="width:auto; padding:8px 14px; background:var(--card2); color:var(--danger); border:1px solid var(--border);">🗑️ ${LANG==='en'?'Remove':'Quitar'}</button>
+      <input type="file" accept="image/*,application/pdf" id="facturaArchivoInput" style="display:none;">
+    </div>`;
+  }
+  return `
+    <h2>${titulo}</h2>
+    <div class="note" style="margin-bottom:10px;">${LANG==='en' ? "Upload a photo or PDF of this month's invoice as a backup — it'll also be included in the annual report." : 'Sube una foto o PDF de la factura de este mes como respaldo — también se incluirá en el reporte anual.'}</div>
+    <button id="subirFacturaArchivoBtn" style="width:auto; padding:8px 14px;">📤 ${LANG==='en'?'Upload invoice':'Subir factura'}</button>
+    <input type="file" accept="image/*,application/pdf" id="facturaArchivoInput" style="display:none;">`;
 }
 
 // Pone el cursor al final del valor de un input type=number. setSelectionRange no
@@ -3235,6 +3317,58 @@ function attachMonthEvents(year, mes){
       fileInput.value = '';
     });
   });
+
+  attachFacturaFotoCardEvents(year, mes);
+}
+
+function attachFacturaFotoCardEvents(year, mes){
+  const card = document.getElementById('facturaFotoCard');
+  if(!card) return;
+  const fileInput = card.querySelector('#facturaArchivoInput');
+  const subirBtn = card.querySelector('#subirFacturaArchivoBtn');
+  const verBtn = card.querySelector('#verFacturaArchivoBtn');
+  const borrarBtn = card.querySelector('#borrarFacturaArchivoBtn');
+
+  if(subirBtn && fileInput) subirBtn.addEventListener('click', ()=> fileInput.click());
+
+  if(verBtn){
+    verBtn.addEventListener('click', async ()=>{
+      const factura = await loadFacturaFoto(year, mes);
+      if(!factura) return;
+      if(factura.tipo === 'pdf'){ window.open(factura.url, '_blank'); }
+      else{ abrirFotoModal(factura.url, null); }
+    });
+  }
+
+  if(borrarBtn){
+    borrarBtn.addEventListener('click', async ()=>{
+      if(!confirm(LANG==='en' ? 'Remove this invoice file?' : '¿Quitar este archivo de factura?')) return;
+      await saveFacturaFoto(year, mes, null);
+      const cardActual = document.getElementById('facturaFotoCard');
+      cardActual.innerHTML = facturaFotoCardHTML(null);
+      attachFacturaFotoCardEvents(year, mes);
+    });
+  }
+
+  if(fileInput){
+    fileInput.addEventListener('change', async ()=>{
+      if(!fileInput.files.length) return;
+      const file = fileInput.files[0];
+      const btnRef = subirBtn || verBtn;
+      const textoOriginal = btnRef ? btnRef.textContent : '';
+      if(btnRef){ btnRef.textContent = '⏳ ' + (LANG==='en'?'Uploading...':'Subiendo...'); btnRef.disabled = true; }
+      const resultado = await subirFacturaArchivo(file);
+      if(resultado){
+        await saveFacturaFoto(year, mes, resultado);
+        const cardActual = document.getElementById('facturaFotoCard');
+        cardActual.innerHTML = facturaFotoCardHTML(resultado);
+        attachFacturaFotoCardEvents(year, mes);
+      } else {
+        if(btnRef){ btnRef.textContent = textoOriginal; btnRef.disabled = false; }
+      }
+      fileInput.value = '';
+    });
+  }
 }
 async function monthChart(year, mes){
   destroyChart('monthChart');
