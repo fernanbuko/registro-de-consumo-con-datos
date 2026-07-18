@@ -1166,6 +1166,7 @@ async function leerLecturaDeFoto(file, recorteManual){
         for(const psm of modosAIntentar){
           await worker.setParameters({ tessedit_pageseg_mode: psm });
           const { data } = await worker.recognize(canvasProcesado);
+          console.log(`[OCR] recorte=${recorte?JSON.stringify(recorte):'completo'} umbral=${umbral} psm=${psm} -> texto crudo: "${data.text.trim()}"`);
           const numeros = (data.text.match(/\d+/g) || []).filter(n => n.length >= 3 && n.length <= 8);
           if(numeros.length > 0){
             numeros.sort((a,b)=> b.length - a.length);
@@ -1175,9 +1176,15 @@ async function leerLecturaDeFoto(file, recorteManual){
         }
       }
     }
+    if(!mejorNumero) console.log('[OCR] No se encontró ningún número de 3 a 8 dígitos en ningún intento.');
     return mejorNumero;
   }catch(e){
     console.error('No se pudo leer la foto con OCR:', e);
+    try{
+      alert(LANG==='en'
+        ? "The number scanner hit a technical problem and couldn't run — you can still enter the reading by hand."
+        : "El lector de números tuvo un problema técnico y no pudo ejecutarse — igual puedes escribir la lectura a mano.");
+    }catch(err){}
     return null;
   }finally{
     if(worker){ try{ await worker.terminate(); }catch(e){} }
