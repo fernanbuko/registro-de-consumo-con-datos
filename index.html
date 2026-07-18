@@ -2486,7 +2486,9 @@ async function guardarFilaPendiente(fecha, year, mes){
   let entries = await loadEntries(year, mes);
   const fotoExistente = entries[fecha] ? entries[fecha].foto : undefined;
   if(isNaN(val)){
-    delete entries[fecha];
+    // Si tenía una foto adjunta, se conserva (solo se borra la lectura/hora, nunca la foto).
+    if(fotoExistente) entries[fecha] = {foto: fotoExistente};
+    else delete entries[fecha];
   } else {
     entries[fecha] = {valor: val, hora};
     if(fotoExistente) entries[fecha].foto = fotoExistente;
@@ -3193,7 +3195,9 @@ function attachMonthEvents(year, mes){
     let entries = await loadEntries(year, mes);
     const fotoExistente = entries[fecha] ? entries[fecha].foto : undefined;
     if(isNaN(val)){
-      delete entries[fecha];
+      // Si tenía una foto adjunta, se conserva (solo se borra la lectura/hora, nunca la foto).
+      if(fotoExistente) entries[fecha] = {foto: fotoExistente};
+      else delete entries[fecha];
     } else {
       entries[fecha] = {valor: val, hora};
       if(fotoExistente) entries[fecha].foto = fotoExistente;
