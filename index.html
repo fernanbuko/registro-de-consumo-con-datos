@@ -1070,6 +1070,50 @@ function comprimirImagen(file, maxDim, calidad){
 // guardarlo junto a la lectura de ese día.
 const CLOUDINARY_CLOUD_NAME = 'zcuh5bjn';
 const CLOUDINARY_UPLOAD_PRESET = 'ehrzlu4w';
+// Lector de números (OCR) para intentar detectar la lectura del medidor en la foto.
+// Se carga solo cuando hace falta (no ralentiza la carga inicial de la app), usando
+// una librería gratuita que corre en el propio navegador, sin cuenta ni clave.
+let TESSERACT_CARGADO = false;
+function cargarTesseract(){
+  return new Promise((resolve, reject)=>{
+    if(TESSERACT_CARGADO || window.Tesseract){ TESSERACT_CARGADO = true; resolve(); return; }
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    script.onload = ()=>{ TESSERACT_CARGADO = true; resolve(); };
+    script.onerror = ()=> reject(new Error('No se pudo cargar el lector de números'));
+    document.head.appendChild(script);
+  });
+}
+// Intenta leer el número del medidor en la foto. No es 100% confiable (los medidores
+// mecánicos de rueditas son difíciles de leer para cualquier OCR), así que esto solo
+// se usa como SUGERENCIA — el usuario siempre puede corregirla antes de guardar.
+async function leerLecturaDeFoto(file){
+  try{
+    await cargarTesseract();
+    const resultado = await Tesseract.recognize(file, 'eng');
+    const texto = resultado && resultado.data ? resultado.data.text : '';
+    const numeros = (texto.match(/\d+/g) || []).filter(n => n.length >= 3 && n.length <= 8);
+    if(numeros.length === 0) return null;
+    numeros.sort((a,b)=> b.length - a.length); // el número más largo suele ser la lectura completa
+    return numeros[0];
+  }catch(e){
+    console.error('No se pudo leer la foto con OCR:', e);
+    return null;
+  }
+}
+// Obtiene la hora en la que se tomó la foto, a partir de la fecha de modificación del
+// propio archivo (en la mayoría de celulares, una foto recién tomada con la cámara
+// trae esa fecha puesta con el momento exacto de la captura).
+function horaDesdeArchivo(file){
+  try{
+    const fecha = new Date(file.lastModified);
+    if(isNaN(fecha.getTime())) return null;
+    const hh = String(fecha.getHours()).padStart(2,'0');
+    const mm = String(fecha.getMinutes()).padStart(2,'0');
+    return `${hh}:${mm}`;
+  }catch(e){ return null; }
+}
+
 async function subirFotoMedidor(file, fecha){
   try{
     const blob = await comprimirImagen(file, 1280, 0.72);
@@ -2261,6 +2305,18 @@ function ajustesHTML(){
       <button id="borrarTodoBtn" style="width:auto; padding:8px 14px; background:var(--card2); color:var(--danger); border:1px solid var(--border);">${LANG==='en' ? '🗑️ Wipe everything (leave app blank)' : '🗑️ Borrar todo (dejar la app en blanco)'}</button>
       <button id="compartirAppBtnAjustes" style="width:auto; padding:8px 14px; background:var(--card2); color:var(--text); border:1px solid var(--border);">${LANG==='en' ? '📤 Share this app' : '📤 Compartir esta app'}</button>
     </div>
+  </div>
+
+  <div class="card">
+    <h2>${LANG==='en' ? 'Manually Link a Photo' : 'Vincular una Foto Manualmente'}</h2>
+    <div class="note" style="margin-bottom:10px;">${LANG==='en'
+      ? "If you find a meter photo directly in your Cloudinary account (e.g. to recover one that got unlinked), paste its link here along with the date to reattach it."
+      : "Si encuentras una foto del medidor directo en tu cuenta de Cloudinary (por ejemplo, para recuperar una que se desvinculó), pega aquí su link junto con la fecha para volver a adjuntarla."}</div>
+    <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">${LANG==='en'?'Date':'Fecha'}</label>
+    <input type="date" id="vincularFotoFecha" style="width:100%; margin-bottom:10px;">
+    <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">${LANG==='en'?'Photo link (URL)':'Link de la foto (URL)'}</label>
+    <input type="text" id="vincularFotoUrl" placeholder="https://res.cloudinary.com/..." style="width:100%; margin-bottom:10px;">
+    <button id="vincularFotoBtn" style="width:auto; padding:8px 14px;">${LANG==='en'?'Link photo':'Vincular foto'}</button>
   </div>`;
 }
 
@@ -2274,6 +2330,27 @@ function attachAjustesEvents(){
     irALoginBtn.addEventListener('click', ()=>{
       try{ localStorage.removeItem('modo_sin_cuenta'); }catch(e){}
       location.reload();
+    });
+  }
+
+  const vincularFotoBtn = document.getElementById('vincularFotoBtn');
+  if(vincularFotoBtn){
+    vincularFotoBtn.addEventListener('click', async ()=>{
+      const fechaInput = document.getElementById('vincularFotoFecha').value;
+      const url = document.getElementById('vincularFotoUrl').value.trim();
+      if(!fechaInput || !url){
+        alert(LANG==='en' ? 'Enter both the date and the photo link.' : 'Ingresa la fecha y el link de la foto.');
+        return;
+      }
+      const [y, m] = fechaInput.split('-');
+      const year = parseInt(y);
+      const mes = MESES[parseInt(m)-1];
+      let entries = await loadEntries(year, mes);
+      if(!entries[fechaInput]) entries[fechaInput] = {};
+      entries[fechaInput].foto = url;
+      await saveEntries(year, mes, entries);
+      alert(LANG==='en' ? 'Photo linked successfully!' : '¡Foto vinculada correctamente!');
+      document.getElementById('vincularFotoUrl').value = '';
     });
   }
 
@@ -2582,7 +2659,11 @@ function attachDiasPendientesEvents(){
       const textoOriginal = btn.textContent;
       btn.textContent = '⏳';
       btn.disabled = true;
-      const url = await subirFotoMedidor(file, fecha);
+      const [url, lecturaDetectada] = await Promise.all([
+        subirFotoMedidor(file, fecha),
+        leerLecturaDeFoto(file)
+      ]);
+      const horaDetectada = horaDesdeArchivo(file);
       if(url){
         let entries = await loadEntries(year, mes);
         if(!entries[fecha]) entries[fecha] = {};
@@ -2598,6 +2679,20 @@ function attachDiasPendientesEvents(){
       }
       btn.disabled = false;
       fileInput.value = '';
+      if(lecturaDetectada){
+        const lectEl = card.querySelector(`.pend-lect-input[data-fecha="${fecha}"]`);
+        if(lectEl && lectEl.value === ''){
+          lectEl.value = lecturaDetectada;
+          lectEl.style.borderColor = '#e8b169';
+          lectEl.title = LANG==='en' ? 'Auto-detected from the photo — please verify before saving.' : 'Detectado automáticamente de la foto — verifica antes de guardar.';
+        }
+      }
+      if(horaDetectada){
+        const horaEl = card.querySelector(`.pend-hora-input[data-fecha="${fecha}"]`);
+        if(horaEl && horaEl.value === ''){
+          horaEl.value = horaDetectada;
+        }
+      }
     });
   });
 }
@@ -3339,7 +3434,11 @@ function attachMonthEvents(year, mes){
       const textoOriginal = btn.textContent;
       btn.textContent = '⏳';
       btn.disabled = true;
-      const url = await subirFotoMedidor(file, fecha);
+      const [url, lecturaDetectada] = await Promise.all([
+        subirFotoMedidor(file, fecha),
+        leerLecturaDeFoto(file)
+      ]);
+      const horaDetectada = horaDesdeArchivo(file);
       if(url){
         let entries = await loadEntries(year, mes);
         if(!entries[fecha]) entries[fecha] = {};
@@ -3355,6 +3454,20 @@ function attachMonthEvents(year, mes){
       }
       btn.disabled = false;
       fileInput.value = '';
+      if(lecturaDetectada){
+        const lectEl = document.querySelector(`.lect-input[data-fecha="${fecha}"]`);
+        if(lectEl && lectEl.value === ''){
+          lectEl.value = lecturaDetectada;
+          lectEl.style.borderColor = '#e8b169';
+          lectEl.title = LANG==='en' ? 'Auto-detected from the photo — please verify before saving.' : 'Detectado automáticamente de la foto — verifica antes de guardar.';
+        }
+      }
+      if(horaDetectada){
+        const horaEl = document.querySelector(`.hora-input[data-fecha="${fecha}"]`);
+        if(horaEl && horaEl.value === ''){
+          horaEl.value = horaDetectada;
+        }
+      }
     });
   });
 
