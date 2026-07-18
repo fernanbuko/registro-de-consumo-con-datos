@@ -271,6 +271,20 @@
     <img id="fotoModalImg" style="max-width:100%; max-height:85vh; border-radius:8px; object-fit:contain;">
     <button id="fotoModalBorrarBtn" style="margin-top:14px; width:auto; padding:9px 16px; background:var(--card2); color:var(--danger); border:1px solid var(--border);">🗑️ Borrar esta foto</button>
   </div>
+
+  <div id="recorteModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:220; align-items:center; justify-content:center; padding:16px; flex-direction:column;">
+    <div class="note" style="color:#fff; text-align:center; margin-bottom:10px;">Marca con el recuadro dónde está el número del medidor (arrástralo para moverlo, o la esquina para cambiar el tamaño).</div>
+    <div id="recorteImgWrap" style="position:relative; max-width:100%; max-height:65vh; touch-action:none; line-height:0;">
+      <img id="recorteImg" style="max-width:100%; max-height:65vh; display:block; user-select:none; -webkit-user-drag:none; pointer-events:none;">
+      <div id="recorteBox" style="position:absolute; border:2px solid #4f8ff0; background:rgba(79,143,240,.18); cursor:move; box-sizing:border-box;">
+        <div id="recorteResizeHandle" style="position:absolute; right:-9px; bottom:-9px; width:22px; height:22px; background:#4f8ff0; border-radius:50%; border:2px solid #fff; cursor:nwse-resize;"></div>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; justify-content:center;">
+      <button id="recorteOmitirBtn" style="width:auto; padding:9px 16px; background:var(--card2); color:var(--text); border:1px solid var(--border);">Omitir (usar foto completa)</button>
+      <button id="recorteConfirmarBtn" style="width:auto; padding:9px 16px;">✓ Usar esta zona</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
@@ -1097,8 +1111,8 @@ function preprocesarParaOCR(img, umbral, recorte){
   if(recorte){
     sw = Math.round(W * recorte.ancho);
     sh = Math.round(H * recorte.alto);
-    sx = Math.round((W - sw) / 2);
-    sy = Math.round(H * recorte.desdeY);
+    sx = Math.round(W * (recorte.x !== undefined ? recorte.x : (1 - recorte.ancho) / 2));
+    sy = Math.round(H * (recorte.y !== undefined ? recorte.y : recorte.desdeY));
   }
   const canvas = document.createElement('canvas');
   canvas.width = sw;
@@ -1125,7 +1139,7 @@ function cargarImagenDesdeArchivo(file){
   });
 }
 
-async function leerLecturaDeFoto(file){
+async function leerLecturaDeFoto(file, recorteManual){
   let worker;
   try{
     await cargarTesseract();
@@ -1136,11 +1150,12 @@ async function leerLecturaDeFoto(file){
     await worker.setParameters({ tessedit_char_whitelist: '0123456789' });
     // La FOTO GUARDADA siempre es la completa (para que sirva de prueba con el
     // medidor entero visible) — este recorte es solo un intento interno para leer
-    // mejor el número, aislando la zona donde suele estar la pantalla del display.
-    const recortesAIntentar = [
-      null, // imagen completa, por si el recorte falla o el display está en otro lado
-      { ancho: 0.7, alto: 0.35, desdeY: 0.22 }, // franja central, un poco arriba de la mitad
-    ];
+    // mejor el número. Si el usuario marcó la zona a mano, se usa esa (mucho más
+    // confiable que adivinar); si no, se prueba con la imagen completa y un recorte
+    // central de respaldo.
+    const recortesAIntentar = recorteManual
+      ? [recorteManual]
+      : [null, { ancho: 0.7, alto: 0.35, desdeY: 0.22 }];
     const umbralesAIntentar = [120, 160];
     const modosAIntentar = ['7', '6'];
     let mejorNumero = null;
@@ -1205,6 +1220,103 @@ async function subirFotoMedidor(file, fecha){
 }
 
 let FOTO_MODAL_CONTEXTO = null; // {year, mes, fecha, btn} de la foto actualmente abierta
+// Modal para que el usuario marque a mano dónde está el número del medidor en su
+// propia foto (en vez de que la app adivine). Devuelve una promesa que resuelve con
+// {x,y,ancho,alto} en fracciones de la imagen (0 a 1), o null si el usuario omite.
+let _recorteCajaEstado = null;
+function _recorteInicializarCaja(imgEl, boxEl){
+  const w = imgEl.clientWidth, h = imgEl.clientHeight;
+  // caja inicial: franja central, un poco arriba de la mitad (donde suele estar el display)
+  const bw = w * 0.65, bh = h * 0.28;
+  const bx = (w - bw) / 2, by = h * 0.22;
+  boxEl.style.left = bx + 'px';
+  boxEl.style.top = by + 'px';
+  boxEl.style.width = bw + 'px';
+  boxEl.style.height = bh + 'px';
+}
+function abrirRecorteModal(file){
+  return new Promise((resolve)=>{
+    const overlay = document.getElementById('recorteModalOverlay');
+    const img = document.getElementById('recorteImg');
+    const wrap = document.getElementById('recorteImgWrap');
+    const box = document.getElementById('recorteBox');
+    const handle = document.getElementById('recorteResizeHandle');
+    const omitirBtn = document.getElementById('recorteOmitirBtn');
+    const confirmarBtn = document.getElementById('recorteConfirmarBtn');
+
+    const url = URL.createObjectURL(file);
+    img.src = url;
+
+    function limpiarYResolver(valor){
+      overlay.style.display = 'none';
+      URL.revokeObjectURL(url);
+      box.onpointerdown = null;
+      handle.onpointerdown = null;
+      omitirBtn.onclick = null;
+      confirmarBtn.onclick = null;
+      resolve(valor);
+    }
+
+    img.onload = ()=>{
+      overlay.style.display = 'flex';
+      _recorteInicializarCaja(img, box);
+
+      let modo = null; // 'mover' | 'redimensionar'
+      let inicio = {x:0,y:0,left:0,top:0,width:0,height:0};
+
+      function moverEvento(e){
+        const px = (e.touches ? e.touches[0].clientX : e.clientX);
+        const py = (e.touches ? e.touches[0].clientY : e.clientY);
+        const dx = px - inicio.x, dy = py - inicio.y;
+        const wMax = img.clientWidth, hMax = img.clientHeight;
+        if(modo === 'mover'){
+          let left = Math.min(Math.max(0, inicio.left + dx), wMax - box.offsetWidth);
+          let top = Math.min(Math.max(0, inicio.top + dy), hMax - box.offsetHeight);
+          box.style.left = left + 'px';
+          box.style.top = top + 'px';
+        } else if(modo === 'redimensionar'){
+          let width = Math.min(Math.max(30, inicio.width + dx), wMax - box.offsetLeft);
+          let height = Math.min(Math.max(20, inicio.height + dy), hMax - box.offsetTop);
+          box.style.width = width + 'px';
+          box.style.height = height + 'px';
+        }
+      }
+      function soltarEvento(){
+        modo = null;
+        window.removeEventListener('pointermove', moverEvento);
+        window.removeEventListener('pointerup', soltarEvento);
+      }
+      box.onpointerdown = (e)=>{
+        if(e.target === handle) return;
+        modo = 'mover';
+        inicio = {x:e.clientX, y:e.clientY, left:box.offsetLeft, top:box.offsetTop, width:box.offsetWidth, height:box.offsetHeight};
+        window.addEventListener('pointermove', moverEvento);
+        window.addEventListener('pointerup', soltarEvento);
+        e.preventDefault();
+      };
+      handle.onpointerdown = (e)=>{
+        modo = 'redimensionar';
+        inicio = {x:e.clientX, y:e.clientY, left:box.offsetLeft, top:box.offsetTop, width:box.offsetWidth, height:box.offsetHeight};
+        window.addEventListener('pointermove', moverEvento);
+        window.addEventListener('pointerup', soltarEvento);
+        e.preventDefault();
+        e.stopPropagation();
+      };
+
+      omitirBtn.onclick = ()=> limpiarYResolver(null);
+      confirmarBtn.onclick = ()=>{
+        const w = img.clientWidth, h = img.clientHeight;
+        limpiarYResolver({
+          x: box.offsetLeft / w,
+          y: box.offsetTop / h,
+          ancho: box.offsetWidth / w,
+          alto: box.offsetHeight / h
+        });
+      };
+    };
+  });
+}
+
 function abrirFotoModal(url, contexto){
   document.getElementById('fotoModalImg').src = url;
   document.getElementById('fotoModalOverlay').style.display = 'flex';
@@ -2723,12 +2835,13 @@ function attachDiasPendientesEvents(){
     fileInput.addEventListener('change', async ()=>{
       if(!fileInput.files.length) return;
       const file = fileInput.files[0];
+      const recorteManual = await abrirRecorteModal(file);
       const textoOriginal = btn.textContent;
       btn.textContent = '⏳';
       btn.disabled = true;
       const [url, lecturaDetectada] = await Promise.all([
         subirFotoMedidor(file, fecha),
-        leerLecturaDeFoto(file)
+        leerLecturaDeFoto(file, recorteManual)
       ]);
       const horaDetectada = horaDesdeArchivo(file);
       if(url){
@@ -3509,12 +3622,13 @@ function attachMonthEvents(year, mes){
     fileInput.addEventListener('change', async ()=>{
       if(!fileInput.files.length) return;
       const file = fileInput.files[0];
+      const recorteManual = await abrirRecorteModal(file);
       const textoOriginal = btn.textContent;
       btn.textContent = '⏳';
       btn.disabled = true;
       const [url, lecturaDetectada] = await Promise.all([
         subirFotoMedidor(file, fecha),
-        leerLecturaDeFoto(file)
+        leerLecturaDeFoto(file, recorteManual)
       ]);
       const horaDetectada = horaDesdeArchivo(file);
       if(url){
