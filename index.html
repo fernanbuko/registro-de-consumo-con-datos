@@ -1090,13 +1090,22 @@ function cargarTesseract(){
 // Convierte la foto a blanco y negro puro (alto contraste), resaltando los dígitos
 // del display y quitando reflejos/sombras — esto mejora bastante la lectura del OCR
 // en pantallas digitales.
-function preprocesarParaOCR(img, umbral){
+function preprocesarParaOCR(img, umbral, recorte){
+  const W = img.naturalWidth || img.width;
+  const H = img.naturalHeight || img.height;
+  let sx=0, sy=0, sw=W, sh=H;
+  if(recorte){
+    sw = Math.round(W * recorte.ancho);
+    sh = Math.round(H * recorte.alto);
+    sx = Math.round((W - sw) / 2);
+    sy = Math.round(H * recorte.desdeY);
+  }
   const canvas = document.createElement('canvas');
-  canvas.width = img.naturalWidth || img.width;
-  canvas.height = img.naturalHeight || img.height;
+  canvas.width = sw;
+  canvas.height = sh;
   const ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0);
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+  const imageData = ctx.getImageData(0, 0, sw, sh);
   const data = imageData.data;
   for(let i=0; i<data.length; i+=4){
     const gris = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
@@ -1125,24 +1134,31 @@ async function leerLecturaDeFoto(file){
     // Solo dígitos — evita que confunda letras/símbolos con números, que es el error
     // más común al leer el display de un medidor.
     await worker.setParameters({ tessedit_char_whitelist: '0123456789' });
-    // Se prueban un par de umbrales de contraste (para distinta luz/reflejos) y un par
-    // de formas de "leer" la imagen (7=línea única, 6=bloque uniforme).
+    // La FOTO GUARDADA siempre es la completa (para que sirva de prueba con el
+    // medidor entero visible) — este recorte es solo un intento interno para leer
+    // mejor el número, aislando la zona donde suele estar la pantalla del display.
+    const recortesAIntentar = [
+      null, // imagen completa, por si el recorte falla o el display está en otro lado
+      { ancho: 0.7, alto: 0.35, desdeY: 0.22 }, // franja central, un poco arriba de la mitad
+    ];
     const umbralesAIntentar = [120, 160];
     const modosAIntentar = ['7', '6'];
     let mejorNumero = null;
-    for(const umbral of umbralesAIntentar){
-      const canvasProcesado = preprocesarParaOCR(img, umbral);
-      for(const psm of modosAIntentar){
-        await worker.setParameters({ tessedit_pageseg_mode: psm });
-        const { data } = await worker.recognize(canvasProcesado);
-        const numeros = (data.text.match(/\d+/g) || []).filter(n => n.length >= 3 && n.length <= 8);
-        if(numeros.length > 0){
-          numeros.sort((a,b)=> b.length - a.length);
-          mejorNumero = numeros[0];
-          break;
+    busqueda:
+    for(const recorte of recortesAIntentar){
+      for(const umbral of umbralesAIntentar){
+        const canvasProcesado = preprocesarParaOCR(img, umbral, recorte);
+        for(const psm of modosAIntentar){
+          await worker.setParameters({ tessedit_pageseg_mode: psm });
+          const { data } = await worker.recognize(canvasProcesado);
+          const numeros = (data.text.match(/\d+/g) || []).filter(n => n.length >= 3 && n.length <= 8);
+          if(numeros.length > 0){
+            numeros.sort((a,b)=> b.length - a.length);
+            mejorNumero = numeros[0];
+            break busqueda;
+          }
         }
       }
-      if(mejorNumero) break;
     }
     return mejorNumero;
   }catch(e){
