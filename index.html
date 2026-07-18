@@ -1074,9 +1074,20 @@ const CLOUDINARY_UPLOAD_PRESET = 'ehrzlu4w';
 // Cloudinary para otras apps, cada una queda en su propia carpeta, y dentro de cada
 // una, cada usuario en la suya.
 const CLOUDINARY_APP_NOMBRE = 'registro-consumo-electrico';
+// Deja el nombre listo para usarse como parte de un nombre de carpeta: sin acentos,
+// sin símbolos raros, espacios cambiados por guion bajo.
+function sanitizarNombreParaCarpeta(nombre){
+  return (nombre || 'sin_nombre')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9 ]/g, '')
+    .trim()
+    .replace(/\s+/g, '_')
+    .slice(0, 40) || 'sin_nombre';
+}
 function carpetaCloudinaryDeEsteUsuario(){
   const usuario = FIREBASE_UID || `local_${PERFIL_ACTIVO || 'sin_perfil'}`;
-  return `${CLOUDINARY_APP_NOMBRE}/${usuario}`;
+  const nombre = sanitizarNombreParaCarpeta(CLIENTE.nombre);
+  return `${CLOUDINARY_APP_NOMBRE}/${usuario}_${nombre}`;
 }
 
 // Obtiene la hora en la que se tomó la foto, a partir de la fecha de modificación del
