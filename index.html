@@ -1079,13 +1079,32 @@ function carpetaCloudinaryDeEsteUsuario(){
   return `${CLOUDINARY_APP_NOMBRE}/${usuario}`;
 }
 
-async function subirFotoMedidor(file, fecha){
+// Obtiene la hora en la que se tomó la foto, a partir de la fecha de modificación del
+// propio archivo (en la mayoría de celulares, una foto recién tomada con la cámara
+// trae esa fecha puesta con el momento exacto de la captura).
+function horaDesdeArchivo(file){
+  try{
+    const fecha = new Date(file.lastModified);
+    if(isNaN(fecha.getTime())) return null;
+    const hh = String(fecha.getHours()).padStart(2,'0');
+    const mm = String(fecha.getMinutes()).padStart(2,'0');
+    return `${hh}:${mm}`;
+  }catch(e){ return null; }
+}
+
+async function subirFotoMedidor(file, fecha, year, mes){
   try{
     const blob = await comprimirImagen(file, 1280, 0.72);
     const formData = new FormData();
     formData.append('file', blob);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    formData.append('asset_folder', carpetaCloudinaryDeEsteUsuario());
+    // Se organiza según el año/mes de la PESTAÑA donde estás viendo esa lectura (no la
+    // fecha exacta del día), para que sea consistente con lo que ves en la app —
+    // aunque subas la foto hoy, si la lectura es de julio, cae en la carpeta de julio.
+    formData.append('asset_folder', `${carpetaCloudinaryDeEsteUsuario()}/${year}/${mes}`);
+    // Metadata con el nombre del cliente, para poder identificar de quién es cada
+    // carpeta sin depender solo del ID interno del usuario.
+    formData.append('context', `nombre=${(CLIENTE.nombre || 'Sin nombre').replace(/[|=]/g,' ')}`);
     const resp = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
       method: 'POST',
       body: formData
@@ -1157,14 +1176,15 @@ async function saveFacturaFoto(year, mes, obj){
 }
 // Sube la factura (foto o PDF) a Cloudinary, igual que la foto del medidor, y devuelve
 // {url, tipo}. resource_type=auto deja que Cloudinary detecte si es imagen o PDF.
-async function subirFacturaArchivo(file){
+async function subirFacturaArchivo(file, year, mes){
   try{
     const esPdf = file.type === 'application/pdf';
     const blob = esPdf ? file : await comprimirImagen(file, 1600, 0.75);
     const formData = new FormData();
     formData.append('file', blob, esPdf ? 'factura.pdf' : 'factura.jpg');
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    formData.append('asset_folder', carpetaCloudinaryDeEsteUsuario() + '/facturas');
+    formData.append('asset_folder', `${carpetaCloudinaryDeEsteUsuario()}/${year}/${mes}/facturas`);
+    formData.append('context', `nombre=${(CLIENTE.nombre || 'Sin nombre').replace(/[|=]/g,' ')}`);
     const resp = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
       method: 'POST',
       body: formData
@@ -2264,6 +2284,18 @@ function ajustesHTML(){
   </div>
 
   <div class="card">
+    <h2>${LANG==='en' ? 'Manually Link a Photo' : 'Vincular una Foto Manualmente'}</h2>
+    <div class="note" style="margin-bottom:10px;">${LANG==='en'
+      ? "If you find a meter photo directly in your Cloudinary account (e.g. to recover one that got unlinked), paste its link here along with the date to reattach it."
+      : "Si encuentras una foto del medidor directo en tu cuenta de Cloudinary (por ejemplo, para recuperar una que se desvinculó), pega aquí su link junto con la fecha para volver a adjuntarla."}</div>
+    <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">${LANG==='en'?'Date':'Fecha'}</label>
+    <input type="date" id="vincularFotoFecha" style="width:100%; margin-bottom:10px;">
+    <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">${LANG==='en'?'Photo link (URL)':'Link de la foto (URL)'}</label>
+    <input type="text" id="vincularFotoUrl" placeholder="https://res.cloudinary.com/..." style="width:100%; margin-bottom:10px;">
+    <button id="vincularFotoBtn" style="width:auto; padding:8px 14px;">${LANG==='en'?'Link photo':'Vincular foto'}</button>
+  </div>
+
+  <div class="card">
     <h2>${LANG==='en' ? 'Before Sharing This App' : 'Antes de Compartir Esta App'}</h2>
     <div class="note" style="margin-bottom:12px;">${LANG==='en'
       ? "Your data lives in this browser, not inside the file itself — so if you send the .html file to someone else's device, they normally won't see your data at all. But if you want to be 100% sure (e.g. sharing from the same device/browser), this wipes every profile and all their data, leaving the app completely blank."
@@ -2285,6 +2317,27 @@ function attachAjustesEvents(){
     irALoginBtn.addEventListener('click', ()=>{
       try{ localStorage.removeItem('modo_sin_cuenta'); }catch(e){}
       location.reload();
+    });
+  }
+
+  const vincularFotoBtn = document.getElementById('vincularFotoBtn');
+  if(vincularFotoBtn){
+    vincularFotoBtn.addEventListener('click', async ()=>{
+      const fechaInput = document.getElementById('vincularFotoFecha').value;
+      const url = document.getElementById('vincularFotoUrl').value.trim();
+      if(!fechaInput || !url){
+        alert(LANG==='en' ? 'Enter both the date and the photo link.' : 'Ingresa la fecha y el link de la foto.');
+        return;
+      }
+      const [y, m] = fechaInput.split('-');
+      const year = parseInt(y);
+      const mes = MESES[parseInt(m)-1];
+      let entries = await loadEntries(year, mes);
+      if(!entries[fechaInput]) entries[fechaInput] = {};
+      entries[fechaInput].foto = url;
+      await saveEntries(year, mes, entries);
+      alert(LANG==='en' ? 'Photo linked successfully!' : '¡Foto vinculada correctamente!');
+      document.getElementById('vincularFotoUrl').value = '';
     });
   }
 
@@ -2474,6 +2527,10 @@ async function buildDiasPendientesCard(){
       <td>${fmtDate(fecha)} <span style="color:var(--sub); font-size:.85em;">${diaSemanaCorta(fecha)}</span></td>
       <td><input type="number" step="0.01" inputmode="decimal" enterkeyhint="next" class="pend-lect-input" data-fecha="${fecha}" data-year="${year}" data-mes="${mes}" placeholder="${LANG==='en'?'Reading':'Lectura'}"></td>
       <td><input type="time" class="pend-hora-input" data-fecha="${fecha}" data-year="${year}" data-mes="${mes}"></td>
+      <td style="text-align:center;">
+        <button class="pend-foto-btn" data-fecha="${fecha}" data-year="${year}" data-mes="${mes}" title="${LANG==='en'?'Attach a photo of the meter':'Adjuntar foto del medidor'}" style="width:auto; padding:4px 8px; background:none; border:1px solid var(--border); color:var(--sub); font-size:.95rem; border-radius:6px; cursor:pointer;">📷</button>
+        <input type="file" accept="image/*" capture="environment" class="pend-foto-input" data-fecha="${fecha}" data-year="${year}" data-mes="${mes}" style="display:none;">
+      </td>
     </tr>`;
   });
   return `<div class="card" id="diasPendientesCard">
@@ -2481,7 +2538,7 @@ async function buildDiasPendientesCard(){
     <div class="note" style="margin-bottom:10px;">${LANG==='en'
       ? `You're missing ${faltantes.length} day(s). You can fill ${faltantes.length>1?'them':'it'} in right here — it'll update in ${mesLabel(mes)} automatically.`
       : `Te falta${faltantes.length>1?'n':''} ingresar ${faltantes.length} día${faltantes.length>1?'s':''}. Puedes escribirlo${faltantes.length>1?'s':''} aquí mismo — se actualiza solo en ${mesLabel(mes)}.`}</div>
-    <div class="daysbox"><div style="overflow-x:auto;"><table><tr><th>${LANG==='en'?'Date':'Fecha'}</th><th>${LANG==='en'?'Reading (kWh)':'Lectura (kWh)'}</th><th>${LANG==='en'?'Time':'Hora'}</th></tr>${filas}</table></div></div>
+    <div class="daysbox"><div style="overflow-x:auto;"><table><tr><th>${LANG==='en'?'Date':'Fecha'}</th><th>${LANG==='en'?'Reading (kWh)':'Lectura (kWh)'}</th><th>${LANG==='en'?'Time':'Hora'}</th><th>${LANG==='en'?'Photo':'Foto'}</th></tr>${filas}</table></div></div>
   </div>`;
 }
 
@@ -2564,6 +2621,52 @@ function attachDiasPendientesEvents(){
             lectEl.focus();
             cursorAlFinalDelValor(lectEl);
           }
+        }
+      }
+    });
+  });
+
+  card.querySelectorAll('.pend-foto-btn').forEach(btn=>{
+    const fecha = btn.dataset.fecha;
+    const year = parseInt(btn.dataset.year);
+    const mes = btn.dataset.mes;
+    const fileInput = card.querySelector(`.pend-foto-input[data-fecha="${fecha}"]`);
+    if(!fileInput) return;
+    btn.addEventListener('click', async ()=>{
+      const entries = await loadEntries(year, mes);
+      const fotoUrl = entries[fecha] ? entries[fecha].foto : null;
+      if(fotoUrl){ abrirFotoModal(fotoUrl, {year, mes, fecha, btn}); return; }
+      fileInput.click();
+    });
+    fileInput.addEventListener('change', async ()=>{
+      if(!fileInput.files.length) return;
+      const file = fileInput.files[0];
+      const textoOriginal = btn.textContent;
+      btn.textContent = '⏳';
+      btn.disabled = true;
+      const url = await subirFotoMedidor(file, fecha, year, mes);
+      const horaDetectada = horaDesdeArchivo(file);
+      if(url){
+        let entries = await loadEntries(year, mes);
+        if(!entries[fecha]) entries[fecha] = {};
+        entries[fecha].foto = url;
+        await saveEntries(year, mes, entries);
+        btn.textContent = '✅📷';
+        btn.style.background = 'var(--card2)';
+        btn.style.borderColor = 'var(--ok)';
+        btn.style.color = 'var(--ok)';
+        btn.title = LANG==='en' ? 'View photo' : 'Ver foto';
+      } else {
+        btn.textContent = textoOriginal;
+      }
+      btn.disabled = false;
+      fileInput.value = '';
+      if(horaDetectada){
+        const horaEl = card.querySelector(`.pend-hora-input[data-fecha="${fecha}"]`);
+        if(horaEl && horaEl.value === ''){
+          horaEl.value = horaDetectada;
+          horaEl.classList.add('hasvalue');
+          await guardarFilaPendiente(fecha, year, mes);
         }
       }
     });
@@ -3305,7 +3408,8 @@ function attachMonthEvents(year, mes){
       const textoOriginal = btn.textContent;
       btn.textContent = '⏳';
       btn.disabled = true;
-      const url = await subirFotoMedidor(file, fecha);
+      const url = await subirFotoMedidor(file, fecha, year, mes);
+      const horaDetectada = horaDesdeArchivo(file);
       if(url){
         let entries = await loadEntries(year, mes);
         if(!entries[fecha]) entries[fecha] = {};
@@ -3321,6 +3425,15 @@ function attachMonthEvents(year, mes){
       }
       btn.disabled = false;
       fileInput.value = '';
+      if(horaDetectada){
+        const horaEl = document.querySelector(`.hora-input[data-fecha="${fecha}"]`);
+        if(horaEl && horaEl.value === ''){
+          horaEl.value = horaDetectada;
+          horaEl.classList.add('hasvalue');
+          await saveRow(fecha);
+          actualizarStatsEnVivo(year, mes);
+        }
+      }
     });
   });
 
@@ -3363,7 +3476,7 @@ function attachFacturaFotoCardEvents(year, mes){
       const btnRef = subirBtn || verBtn;
       const textoOriginal = btnRef ? btnRef.textContent : '';
       if(btnRef){ btnRef.textContent = '⏳ ' + (LANG==='en'?'Uploading...':'Subiendo...'); btnRef.disabled = true; }
-      const resultado = await subirFacturaArchivo(file);
+      const resultado = await subirFacturaArchivo(file, year, mes);
       if(resultado){
         await saveFacturaFoto(year, mes, resultado);
         const cardActual = document.getElementById('facturaFotoCard');
