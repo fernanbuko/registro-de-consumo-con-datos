@@ -866,6 +866,30 @@ function aplicarCiudad(){
   }
 }
 
+// ---- Unidad de Negocio de CNEL y el porcentaje del Subsidio Solidario que le
+// corresponde. Es un dato confirmado: 5% para la UN Guayaquil, 10% para el resto del
+// país (así lo indica el propio glosario de CNEL). Este porcentaje se aplica sobre
+// (consumo + comercialización) SOLO para quienes consumen por encima del promedio de
+// su zona — ese umbral de "promedio" no es un dato público único, así que el
+// porcentaje se muestra como referencia informativa en Tarifa Eléctrica.
+const UNIDADES_NEGOCIO_CNEL = [
+  "Guayaquil","Guayas Los Ríos","Los Ríos","Manabí","Milagro","Santa Elena",
+  "Santo Domingo","Sucumbíos","Bolívar","El Oro","Esmeraldas"
+];
+let UNIDAD_NEGOCIO = "";
+async function loadUnidadNegocio(){
+  let v = await storageGet(`unidad_negocio:${PERFIL_ACTIVO}`);
+  UNIDAD_NEGOCIO = v || "";
+}
+async function saveUnidadNegocio(val){
+  UNIDAD_NEGOCIO = val || "";
+  await storageSet(`unidad_negocio:${PERFIL_ACTIVO}`, UNIDAD_NEGOCIO);
+}
+function porcentajeSubsidioSolidario(){
+  if(!UNIDAD_NEGOCIO) return null;
+  return UNIDAD_NEGOCIO === "Guayaquil" ? 0.05 : 0.10;
+}
+
 // ---- Datos del cliente (con soporte para varios perfiles/cuentas)
 const CLIENTE_DEFAULT = {
   nombre: "ORELLANA MOSCOSO REINA ISABEL",
@@ -903,6 +927,7 @@ async function recargarDatosPerfil(irAResumen = true){
   await loadTerceraEdad();
   await loadCiudad();
   await loadBomberosManual();
+  await loadUnidadNegocio();
   buildFutureRanges();
   currentYear = YEARS[0] || BASE_YEAR;
   if(irAResumen) currentTab = "Resumen Anual";
@@ -1417,6 +1442,7 @@ async function exportarJSONDePerfil(perfilId){
   await loadTerceraEdad();
   await loadCiudad();
   await loadBomberosManual();
+  await loadUnidadNegocio();
 
   await exportarJSON();
 
@@ -2397,6 +2423,15 @@ function ajustesHTML(){
     <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">${LANG==='en' ? `Fire Dept. fee (currently applying $${FIXED.bomberos.toFixed(2)})` : `Contribución Bomberos (aplicando $${FIXED.bomberos.toFixed(2)} actualmente)`}</label>
     <input type="number" step="0.01" id="clienteBomberosManual" placeholder="${LANG==='en'?'Leave blank to use the estimate above':'Déjalo vacío para usar el estimado de arriba'}" value="${BOMBEROS_MANUAL!==null ? BOMBEROS_MANUAL : ''}" style="width:100%; margin-bottom:14px; padding:8px 10px; border-radius:6px; border:1px solid var(--border); background:var(--card2); color:var(--text);">
 
+    <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">${LANG==='en'?'CNEL Business Unit':'Unidad de Negocio de CNEL'}</label>
+    <select id="clienteUnidadNegocio" style="width:100%; margin-bottom:6px; padding:8px 10px; border-radius:6px; border:1px solid var(--border); background:var(--card2); color:var(--text);">
+      <option value="">${LANG==='en'?'Not selected':'Sin seleccionar'}</option>
+      ${UNIDADES_NEGOCIO_CNEL.map(u => `<option value="${u}" ${UNIDAD_NEGOCIO===u?'selected':''}>${u}</option>`).join('')}
+    </select>
+    <div class="note" style="margin-bottom:14px;">${LANG==='en'
+      ? "Sets the Solidarity Subsidy surcharge percentage that applies when your consumption is above your zone's average: 5% for Guayaquil, 10% for the rest of the country. You'll see it as a reference in Tarifa Eléctrica."
+      : "Fija el porcentaje del recargo por Subsidio Solidario que aplica cuando tu consumo está por encima del promedio de tu zona: 5% para Guayaquil, 10% para el resto del país. Lo verás como referencia en Tarifa Eléctrica."}</div>
+
     <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">${LANG==='en'?'Account number':'Cuenta Contrato'}</label>
     <input type="text" id="clienteCuenta" class="cliente-field" value="${CLIENTE.cuenta||''}" style="width:100%; margin-bottom:10px; padding:8px 10px; border-radius:6px; border:1px solid var(--border); background:var(--card2); color:var(--text);">
 
@@ -2586,6 +2621,7 @@ function attachAjustesEvents(){
     });
     await saveCiudad(document.getElementById('clienteCiudad').value.trim());
     await saveBomberosManual(document.getElementById('clienteBomberosManual').value);
+    await saveUnidadNegocio(document.getElementById('clienteUnidadNegocio').value);
     navegarA("Resumen Anual");
   });
   nuevoPerfilBtn.addEventListener('click', async ()=>{
@@ -3021,6 +3057,13 @@ function tarifaHTML(){
     <div class="kv"><span>${LANG==='en' ? `Fire Dept. Fee${CIUDAD ? ' — '+CIUDAD : ''}` : `Contribución Bomberos${CIUDAD ? ' — '+CIUDAD : ''}`}</span><span class="v blue">${money(FIXED.bomberos)}</span></div>
     ${ES_TERCERA_EDAD ? `<div class="kv"><span>Subsidio Ley Adulto Mayor (se resta)</span><span class="v blue">${money(SUBSIDIO_ADULTO_MONTO)}</span></div>` : `<div class="note">Este perfil no está marcado como Adulto Mayor, así que no se aplica el subsidio de Ley Adulto Mayor. Puedes cambiar esto en Ajustes → Datos del Cliente.</div>`}
     <div class="kv"><span>I.V.A. aplicable</span><span class="v blue">${FIXED.iva*100}%</span></div>
+    ${UNIDAD_NEGOCIO ? `<div class="kv"><span>${LANG==='en'?'Solidarity Subsidy surcharge':'Recargo Subsidio Solidario'} — ${UNIDAD_NEGOCIO}</span><span class="v blue">${(porcentajeSubsidioSolidario()*100).toFixed(0)}%</span></div>
+    <div class="note" style="margin-bottom:10px;">${LANG==='en'
+      ? "This is the surcharge percentage that applies to (consumption + commercialization) when your usage is above your zone's average — it's a reference figure, since the exact zone average isn't public. The simulator above already estimates this cost using your own real bills, which tends to be more precise for this specific account."
+      : "Este es el porcentaje de recargo que se aplica sobre (consumo + comercialización) cuando tu consumo está por encima del promedio de tu zona — es un valor de referencia, ya que el promedio exacto de tu zona no es un dato público. El simulador de arriba ya estima este costo usando tus propias facturas reales, lo cual suele ser más preciso para esta cuenta en particular."}</div>`
+    : `<div class="note" style="margin-bottom:10px;">${LANG==='en'
+      ? "Select your CNEL Business Unit in Ajustes → Datos del Cliente to see the Solidarity Subsidy surcharge percentage that applies to your zone (5% Guayaquil, 10% elsewhere)."
+      : "Selecciona tu Unidad de Negocio de CNEL en Ajustes → Datos del Cliente para ver el porcentaje de recargo por Subsidio Solidario que aplica en tu zona (5% Guayaquil, 10% el resto del país)."}</div>`}
 
     <h3>Histórico real (fuente para calcular promedios)</h3>
     <div style="overflow-x:auto;">
@@ -3780,6 +3823,7 @@ async function continuarDespuesDeAuth(){
   await loadTerceraEdad();
   await loadCiudad();
   await loadBomberosManual();
+  await loadUnidadNegocio();
   await loadPais();
   await loadLang();
   await loadTheme();
