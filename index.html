@@ -1966,7 +1966,8 @@ async function computeMonth(year, mes){
     // (real) del último mes con factura ya cargada — esa misma lectura sirve de
     // partida, así que se auto-llena desde ahí si todavía no se ingresó nada.
     const secuencia = futureSequence();
-    const esPrimeroDeLaCadena = secuencia.length && secuencia[0].year === year && secuencia[0].mes === mes;
+    const idx = secuencia.findIndex(s => s.year === year && s.mes === mes);
+    const esPrimeroDeLaCadena = idx === 0;
     if(esPrimeroDeLaCadena && PERFIL_ACTIVO === 'default'){
       const ultimoHistorico = HIST_MESES[HIST_MESES.length-1];
       const rango = cycleRange(year, mes);
@@ -1974,6 +1975,27 @@ async function computeMonth(year, mes){
         entries[rango.desde] = DATA[ultimoHistorico].lect_fin;
         await saveEntries(year, mes, entries);
       }
+    }
+    // Autocompletado: si el día compartido con el mes vecino (el de inicio o el de
+    // corte) ya tiene datos ahí pero no aquí — por ejemplo, porque se ingresó antes
+    // de que existiera esta sincronización — se copia solo, sin que el usuario tenga
+    // que volver a escribirlo.
+    if(idx !== -1){
+      const rango = cycleRange(year, mes);
+      let changed = false;
+      if(entries[rango.desde]===undefined && idx > 0){
+        const anterior = secuencia[idx-1];
+        if(!esMesHistorico(anterior.year, anterior.mes)){
+          const entriesAnterior = await loadEntries(anterior.year, anterior.mes);
+          if(entriesAnterior[rango.desde]){ entries[rango.desde] = {...entriesAnterior[rango.desde]}; changed = true; }
+        }
+      }
+      if(entries[rango.hasta]===undefined && idx < secuencia.length-1){
+        const siguiente = secuencia[idx+1];
+        const entriesSiguiente = await loadEntries(siguiente.year, siguiente.mes);
+        if(entriesSiguiente[rango.hasta]){ entries[rango.hasta] = {...entriesSiguiente[rango.hasta]}; changed = true; }
+      }
+      if(changed) await saveEntries(year, mes, entries);
     }
   }
   const days = dayList(year, mes);
