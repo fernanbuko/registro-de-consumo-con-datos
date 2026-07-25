@@ -576,10 +576,9 @@ function getCycleStart(){
   // así que sus meses estimados siguen encadenados desde el fin de Junio real.
   // Cualquier otro perfil (propiedad nueva) no tiene esas facturas, así que
   // arranca su propio ciclo desde el 1 de enero del año base.
-  // NOTA: se usa el mismo día del corte (no el día siguiente), porque esa lectura
-  // sirve tanto de cierre del mes anterior como de partida del nuevo — por eso ese
-  // día aparece en ambos meses.
-  return PERFIL_ACTIVO === 'default' ? "2026-06-23" : `${BASE_YEAR}-01-01`;
+  // NOTA: el ciclo estimado arranca el día SIGUIENTE al corte del mes anterior (no el
+  // mismo día) — cada día pertenece a un solo mes, sin compartir el día de corte.
+  return PERFIL_ACTIVO === 'default' ? addDays(DATA['Junio'].hasta, 1) : `${BASE_YEAR}-01-01`;
 }
 
 function addDays(fecha, n){
@@ -674,34 +673,13 @@ async function migrarLecturasSiCambioDeRango(mapaAntes, mapaDespues){
 function esMesHistorico(year, mes){
   return PERFIL_ACTIVO === 'default' && year === BASE_YEAR && !!DATA[mes];
 }
-// El día de corte es el mismo día que abre el mes siguiente (esa misma lectura cierra
-// un mes y arranca el otro) — así que si guardas la lectura/hora/foto de ese día en un
-// mes, se refleja automáticamente en el mes vecino también, para que se vea igual en
-// los dos lados.
+// A pedido del usuario, los meses ya NO comparten el día de corte (antes, la misma
+// lectura cerraba un mes y abría el otro; ahora cada día pertenece a un solo mes: si
+// el corte es el 23, el mes siguiente arranca el 24). Por eso esta función ya no tiene
+// nada que sincronizar entre meses vecinos — se deja como no-op en vez de borrarla, por
+// si en el futuro se quisiera reactivar ese comportamiento.
 async function sincronizarDiaCompartido(year, mes, fecha){
-  if(esMesHistorico(year, mes)) return; // el mes histórico ya tiene su lectura real fija
-  const secuencia = futureSequence();
-  const idx = secuencia.findIndex(s => s.year === year && s.mes === mes);
-  if(idx === -1) return;
-  const rango = cycleRange(year, mes);
-  const entries = await loadEntries(year, mes);
-  const entryActual = entries[fecha];
-  if(!entryActual) return;
-
-  if(fecha === rango.hasta && idx < secuencia.length-1){
-    const siguiente = secuencia[idx+1];
-    let entriesVecino = await loadEntries(siguiente.year, siguiente.mes);
-    entriesVecino[fecha] = {...entryActual};
-    await saveEntries(siguiente.year, siguiente.mes, entriesVecino);
-  }
-  if(fecha === rango.desde && idx > 0){
-    const anterior = secuencia[idx-1];
-    if(!esMesHistorico(anterior.year, anterior.mes)){
-      let entriesAnterior = await loadEntries(anterior.year, anterior.mes);
-      entriesAnterior[fecha] = {...entryActual};
-      await saveEntries(anterior.year, anterior.mes, entriesAnterior);
-    }
-  }
+  return;
 }
 async function setCutoffOverride(year, mes, desde, hasta){
   const mapaAntes = construirFechaAMes();
@@ -716,7 +694,8 @@ async function setCutoffOverride(year, mes, desde, hasta){
   // Si se movió el inicio hacia ADELANTE, los días que quedaron justo antes ya no son
   // de este mes — para que no queden "sin mes", se alarga automáticamente el mes
   // anterior (si es un mes de la cadena estimada, no uno con factura real ya fija)
-  // para que termine justo EN este nuevo inicio (el día de corte se comparte).
+  // para que termine justo el día ANTES de este nuevo inicio (cada día pertenece a un
+  // solo mes, ya no se comparte el día de corte entre meses vecinos).
   if(desde !== undefined){
     const secuencia = futureSequence();
     const idx = secuencia.findIndex(s => s.year === year && s.mes === mes);
@@ -725,7 +704,7 @@ async function setCutoffOverride(year, mes, desde, hasta){
       if(!esMesHistorico(anterior.year, anterior.mes)){
         buildFutureRanges();
         const rangoAnterior = cycleRange(anterior.year, anterior.mes);
-        const nuevoFinAnterior = desde;
+        const nuevoFinAnterior = addDays(desde, -1);
         if(nuevoFinAnterior > rangoAnterior.hasta){
           const actualAnterior = FUTURE_OVERRIDES[`${anterior.year}:${anterior.mes}`] || {};
           FUTURE_OVERRIDES[`${anterior.year}:${anterior.mes}`] = {
@@ -739,20 +718,20 @@ async function setCutoffOverride(year, mes, desde, hasta){
   }
 
   // Si se movió el CORTE (hasta) de este mes, y el mes SIGUIENTE ya tenía guardado un
-  // ajuste propio cuyo inicio coincidía con el corte anterior de este mes (es decir,
-  // ese inicio solo estaba "siguiendo" el día compartido, no fijado a propósito a otra
-  // fecha) — se actualiza ese inicio para que siga compartiendo el día con el nuevo
-  // corte. Sin esto, un mes siguiente con su propio ajuste se quedaba "atascado" con la
-  // fecha vieja cuando cambiabas el corte de este mes.
+  // ajuste propio cuyo inicio coincidía con el día siguiente al corte anterior de este
+  // mes (es decir, ese inicio solo estaba "siguiendo" el corte, no fijado a propósito a
+  // otra fecha) — se actualiza ese inicio para que siga el nuevo corte (día siguiente).
+  // Sin esto, un mes siguiente con su propio ajuste se quedaba "atascado" con la fecha
+  // vieja cuando cambiabas el corte de este mes.
   if(hasta !== undefined && rangoAntes.hasta !== hasta){
     const secuencia = futureSequence();
     const idx = secuencia.findIndex(s => s.year === year && s.mes === mes);
     if(idx !== -1 && idx < secuencia.length - 1){
       const siguiente = secuencia[idx + 1];
       const overrideSiguiente = FUTURE_OVERRIDES[`${siguiente.year}:${siguiente.mes}`];
-      if(overrideSiguiente && overrideSiguiente.desde === rangoAntes.hasta){
+      if(overrideSiguiente && overrideSiguiente.desde === addDays(rangoAntes.hasta, 1)){
         FUTURE_OVERRIDES[`${siguiente.year}:${siguiente.mes}`] = {
-          desde: hasta,
+          desde: addDays(hasta, 1),
           hasta: overrideSiguiente.hasta
         };
         await saveOverrides();
@@ -798,9 +777,9 @@ function buildFutureRanges(){
     const desde = (override && override.desde) ? override.desde : cursor;
     const hasta = (override && override.hasta) ? override.hasta : addDays(desde, FUTURE_CYCLE_LEN-1);
     FUTURE_RANGES_MAP[key] = {desde, hasta};
-    // El día de corte (hasta) es el mismo día en que arranca el siguiente mes — esa
-    // misma lectura cierra un mes y abre el otro, así que ese día se ve en ambos.
-    cursor = hasta;
+    // El siguiente mes arranca el día DESPUÉS de este corte — cada día pertenece a un
+    // solo mes, no se comparte el día de corte entre el mes que cierra y el que abre.
+    cursor = addDays(hasta, 1);
   });
 }
 
@@ -2148,18 +2127,6 @@ async function computeMonth(year, mes){
     if(entries[DATA[mes].hasta]===undefined){ entries[DATA[mes].hasta]=DATA[mes].lect_fin; changed=true; }
     if(changed) await saveEntries(year, mes, entries);
   } else {
-    // El primer mes de la cadena estimada comparte su primer día con el último día
-    // (real) del último mes con factura ya cargada — esa misma lectura sirve de
-    // partida, así que se auto-llena desde ahí si todavía no se ingresó nada.
-    const esPrimeroDeLaCadena = idx === 0;
-    if(esPrimeroDeLaCadena && PERFIL_ACTIVO === 'default'){
-      const ultimoHistorico = HIST_MESES[HIST_MESES.length-1];
-      const rango = cycleRange(year, mes);
-      if(DATA[ultimoHistorico] && entries[rango.desde]===undefined){
-        entries[rango.desde] = DATA[ultimoHistorico].lect_fin;
-        await saveEntries(year, mes, entries);
-      }
-    }
     // Autocompletado: si el día compartido con el mes vecino (el de inicio o el de
     // corte) ya tiene datos ahí pero no aquí — por ejemplo, porque se ingresó antes
     // de que existiera esta sincronización — se copia solo, sin que el usuario tenga
