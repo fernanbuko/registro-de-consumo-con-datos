@@ -943,6 +943,65 @@ const UMBRALES_SOLIDARIO_POR_UN = {
   "Esmeraldas":       {recibeHasta: 130, aportaDesde: 140, pct: 0.10},
   "Bolívar":          {recibeHasta: 50,  aportaDesde: 60,  pct: 0.10},
 };
+// ---- Tarifa Residencial por bloques crecientes de consumo, según el Pliego Tarifario
+// del Servicio Público de Energía Eléctrica (ARCONEL, Resolución 022/2024, año 2025 —
+// el de 2026 aún no estaba publicado al momento de implementar esto). Es un sistema
+// INCREMENTAL: cada bloque de kWh se paga a su propia tarifa, como en el impuesto a la
+// renta — no toda la energía se cobra al precio del bloque más alto alcanzado.
+// CNEL Guayaquil tiene tarifa propia (más baja) en los primeros 3 bloques; el resto de
+// Unidades de Negocio de CNEL comparten esta misma tabla general.
+const TARIFA_BLOQUES_GENERAL = [
+  {hasta: 50,   tarifa: 0.091},
+  {hasta: 100,  tarifa: 0.093},
+  {hasta: 150,  tarifa: 0.095},
+  {hasta: 200,  tarifa: 0.097},
+  {hasta: 250,  tarifa: 0.099},
+  {hasta: 300,  tarifa: 0.101},
+  {hasta: 350,  tarifa: 0.103},
+  {hasta: 500,  tarifa: 0.105},
+  {hasta: 700,  tarifa: 0.1285},
+  {hasta: 1000, tarifa: 0.1450},
+  {hasta: 1500, tarifa: 0.1709},
+  {hasta: 2500, tarifa: 0.2752},
+  {hasta: 3500, tarifa: 0.4360},
+  {hasta: Infinity, tarifa: 0.6812},
+];
+const TARIFA_BLOQUES_GUAYAQUIL = [
+  {hasta: 50,   tarifa: 0.078},
+  {hasta: 100,  tarifa: 0.081},
+  {hasta: 150,  tarifa: 0.083},
+  {hasta: 200,  tarifa: 0.097},
+  {hasta: 250,  tarifa: 0.099},
+  {hasta: 300,  tarifa: 0.101},
+  {hasta: 350,  tarifa: 0.103},
+  {hasta: 500,  tarifa: 0.105},
+  {hasta: 700,  tarifa: 0.1285},
+  {hasta: 1000, tarifa: 0.1450},
+  {hasta: 1500, tarifa: 0.1709},
+  {hasta: 2500, tarifa: 0.2752},
+  {hasta: 3500, tarifa: 0.4360},
+  {hasta: Infinity, tarifa: 0.6812},
+];
+function tablaBloquesDe(unidadNegocio){
+  return unidadNegocio === "Guayaquil" ? TARIFA_BLOQUES_GUAYAQUIL : TARIFA_BLOQUES_GENERAL;
+}
+// Calcula el valor por consumo sumando cada bloque a su propia tarifa (progresivo).
+function valorConsumoPorBloques(consumo, tabla){
+  let restante = consumo;
+  let valorTotal = 0;
+  let desdeAnterior = 0;
+  for(const bloque of tabla){
+    const anchoBloque = bloque.hasta - desdeAnterior;
+    const kwhEnEsteBloque = Math.min(restante, anchoBloque);
+    if(kwhEnEsteBloque > 0){
+      valorTotal += kwhEnEsteBloque * bloque.tarifa;
+      restante -= kwhEnEsteBloque;
+    }
+    desdeAnterior = bloque.hasta;
+    if(restante <= 0) break;
+  }
+  return valorTotal;
+}
 let UNIDAD_NEGOCIO = "";
 async function loadUnidadNegocio(){
   let v = await storageGet(`unidad_negocio:${PERFIL_ACTIVO}`);
@@ -2062,8 +2121,21 @@ function simulador(consumo, subsidioExtra){
   // aproximación.
   const dignidadHasta = umbralUN ? umbralUN.recibeHasta : DIGNIDAD_KWH;
   const esDignidad = consumo <= dignidadHasta;
-  const tarifaAplicada = esDignidad ? DIGNIDAD_RATE : tarifaProm;
-  const valorConsumo = consumo*tarifaAplicada;
+  // El valor del consumo: si hay Unidad de Negocio configurada y el consumo YA superó
+  // la Tarifa Dignidad, se calcula con la tabla real de bloques crecientes (cada bloque
+  // de kWh a su propia tarifa, como el impuesto a la renta) — en vez del promedio
+  // calibrado con las facturas reales de esta cuenta.
+  let valorConsumo, tarifaAplicada;
+  if(esDignidad){
+    tarifaAplicada = DIGNIDAD_RATE;
+    valorConsumo = consumo * DIGNIDAD_RATE;
+  } else if(UNIDAD_NEGOCIO){
+    valorConsumo = valorConsumoPorBloques(consumo, tablaBloquesDe(UNIDAD_NEGOCIO));
+    tarifaAplicada = valorConsumo / consumo; // tarifa promedio efectiva, para mostrar
+  } else {
+    tarifaAplicada = tarifaProm;
+    valorConsumo = consumo * tarifaProm;
+  }
   // El Subsidio Cruzado/Solidario tiene 3 zonas reales (según la Unidad de Negocio):
   // hasta el umbral de Dignidad, se recibe (no paga); entre ese umbral y el umbral de
   // aporte, zona neutral (no recibe ni aporta); por encima del umbral de aporte, se
