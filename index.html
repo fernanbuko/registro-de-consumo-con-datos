@@ -1623,8 +1623,8 @@ async function filasFacturacion(year, mes){
     rows.push([LANG==='en'?"Energy Value":"Valor Consumo", real.valor_consumo]);
     rows.push([LANG==='en'?"Commercialization":"Comercialización", real.comercial]);
     rows.push([LANG==='en'?"Cross Subsidy (+)":"Subsidio Cruzado Solidario (+)", real.subsidio_cruzado]);
-    rows.push([LANG==='en'?"Senior Citizen Subsidy (-)":"Subsidio Adulto Mayor (-)", -real.subsidio_adulto]);
     if(real.compensacion) rows.push(["Compensación D.E. 379 (-)", -real.compensacion]);
+    rows.push([LANG==='en'?"Senior Citizen Subsidy (-)":"Subsidio Adulto Mayor (-)", -real.subsidio_adulto]);
     rows.push([LANG==='en'?"SE Subtotal":"Subtotal SE", real.subtotalSE]);
     rows.push([LANG==='en'?"Public Lighting":"Alumbrado Público", real.alumbrado]);
     rows.push([LANG==='en'?"SE+AP Total":"Total SE y AP", real.totalSEAP]);
@@ -1648,12 +1648,12 @@ async function filasFacturacion(year, mes){
     rows.push([LANG==='en'?"Estimated Energy Value":"Valor Consumo estimado", r2(sim.valorConsumo)]);
     rows.push([LANG==='en'?"Commercialization":"Comercialización", r2(FIXED.comercial)]);
     rows.push([LANG==='en'?"Estimated Cross Subsidy (+)":"Subsidio Cruzado estimado (+)", r2(sim.subsidioCruzado)]);
+    if(sim.subsidioExtraVal) rows.push([LANG==='en'?"Extraordinary Gov. Subsidy (-)":"Subsidio Extraordinario del Gobierno (-)", r2(-sim.subsidioExtraVal)]);
     rows.push([LANG==='en'?"Senior Citizen Subsidy (-)":"Subsidio Adulto Mayor (-)", r2(-FIXED.subsidio_adulto)]);
     rows.push([LANG==='en'?"SE Subtotal":"Subtotal SE", r2(sim.subtotalSE)]);
     rows.push([LANG==='en'?"Estimated Public Lighting":"Alumbrado Público estimado", r2(sim.alumbrado)]);
     rows.push([LANG==='en'?"Estimated SE+AP Total":"Total SE y AP estimado", r2(sim.totalSEAP)]);
     rows.push([LANG==='en'?"Fire Dept. Fee":"Bomberos", r2(FIXED.bomberos)]);
-    if(sim.subsidioExtraVal) rows.push([LANG==='en'?"Extraordinary Gov. Subsidy (-)":"Subsidio Extraordinario del Gobierno (-)", r2(-sim.subsidioExtraVal)]);
     rows.push([LANG==='en'?"ESTIMATED TOTAL BILL":"TOTAL FACTURA ESTIMADA", r2(sim.totalFactura)]);
     const realTotal = hist ? facturaReal(mes).totalFactura : null;
     if(realTotal!==null) rows.push([LANG==='en'?"Difference vs. real bill":"Diferencia vs. factura real", sim.totalFactura - realTotal]);
@@ -1906,8 +1906,8 @@ async function construirDetalleMes(year, mes){
         <tr><td>Valor Consumo</td><td>${money(real.valor_consumo)}</td></tr>
         <tr><td>Comercialización</td><td>${money(real.comercial)}</td></tr>
         <tr><td>Subsidio Cruzado Solidario (+)</td><td>${money(real.subsidio_cruzado)}</td></tr>
-        <tr><td>Subsidio Adulto Mayor (-)</td><td>${money(-real.subsidio_adulto)}</td></tr>
         ${real.compensacion ? `<tr><td>Compensación D.E. 379 (-)</td><td>${money(-real.compensacion)}</td></tr>` : ""}
+        <tr><td>Subsidio Adulto Mayor (-)</td><td>${money(-real.subsidio_adulto)}</td></tr>
         <tr><td>Subtotal Servicio Eléctrico (SE)</td><td>${money(real.subtotalSE)}</td></tr>
         <tr><td>Alumbrado Público</td><td>${money(real.alumbrado)}</td></tr>
         <tr><td>Total SE y AP</td><td>${money(real.totalSEAP)}</td></tr>
@@ -1933,12 +1933,12 @@ async function construirDetalleMes(year, mes){
         <tr><td>Valor Consumo estimado</td><td>${money(sim.valorConsumo)}</td></tr>
         <tr><td>Comercialización</td><td>${money(FIXED.comercial)}</td></tr>
         <tr><td>Subsidio Cruzado estimado (+)</td><td>${money(sim.subsidioCruzado)}</td></tr>
+        ${sim.subsidioExtraVal ? `<tr><td>Subsidio Extraordinario del Gobierno (-)</td><td>${money(-sim.subsidioExtraVal)}</td></tr>` : ""}
         <tr><td>Subsidio Adulto Mayor (-)</td><td>${money(-FIXED.subsidio_adulto)}</td></tr>
         <tr><td>Subtotal SE</td><td>${money(sim.subtotalSE)}</td></tr>
         <tr><td>Alumbrado Público estimado</td><td>${money(sim.alumbrado)}</td></tr>
         <tr><td>Total SE y AP estimado</td><td>${money(sim.totalSEAP)}</td></tr>
         <tr><td>Bomberos</td><td>${money(FIXED.bomberos)}</td></tr>
-        ${sim.subsidioExtraVal ? `<tr><td>Subsidio Extraordinario del Gobierno (-)</td><td>${money(-sim.subsidioExtraVal)}</td></tr>` : ""}
         <tr><td><b>TOTAL FACTURA ESTIMADA</b></td><td><b>${money(sim.totalFactura)}</b></td></tr>
         ${(!hist && manual.total!=null) ? `<tr><td><b>VALOR TOTAL FACTURA (ingresado)</b></td><td><b>${money(manual.total)}</b></td></tr>` : ""}
         ${(hist || manual.total!=null) ? `<tr><td>Diferencia vs. factura real</td><td>${money(sim.totalFactura - (hist ? facturaReal(mes).totalFactura : manual.total))}</td></tr>` : ""}
@@ -3346,8 +3346,8 @@ async function buildStatsSections(year, mes){
     <div class="kv"><span>Valor Consumo</span><span class="v blue">${money(real.valor_consumo)}</span></div>
     <div class="kv"><span>Comercialización</span><span class="v blue">${money(real.comercial)}</span></div>
     <div class="kv"><span>Subsidio Cruzado Solidario (+)</span><span class="v blue">${money(real.subsidio_cruzado)}</span></div>
-    <div class="kv"><span>Subsidio Adulto Mayor (-)</span><span class="v blue">${money(-real.subsidio_adulto)}</span></div>
     ${real.compensacion ? `<div class="kv"><span>Compensación D.E. 379 (-)</span><span class="v blue">${money(-real.compensacion)}</span></div>` : ""}
+    <div class="kv"><span>Subsidio Adulto Mayor (-)</span><span class="v blue">${money(-real.subsidio_adulto)}</span></div>
     <div class="kv"><span>Subtotal Servicio Eléctrico</span><span class="v">${money(real.subtotalSE)}</span></div>
     <div class="kv"><span>Alumbrado Público</span><span class="v blue">${money(real.alumbrado)}</span></div>
     <div class="kv"><span>Total SE y AP</span><span class="v">${money(real.totalSEAP)}</span></div>
@@ -3385,12 +3385,12 @@ async function buildStatsSections(year, mes){
     <div class="kv"><span>Valor Consumo estimado</span><span class="v">${money(sim.valorConsumo)}</span></div>
     <div class="kv"><span>Comercialización</span><span class="v green">${money(FIXED.comercial)}</span></div>
     <div class="kv"><span>Subsidio Cruzado estimado (+)</span><span class="v">${money(sim.subsidioCruzado)}</span></div>
+    ${sim.subsidioExtraVal ? `<div class="kv"><span>Subsidio extraordinario del Gobierno (-)</span><span class="v blue">${money(-sim.subsidioExtraVal)}</span></div>` : ""}
     <div class="kv"><span>Subsidio Adulto Mayor (-)</span><span class="v green">${money(-FIXED.subsidio_adulto)}</span></div>
     <div class="kv"><span>Subtotal SE</span><span class="v">${money(sim.subtotalSE)}</span></div>
     <div class="kv"><span>Alumbrado Público estimado</span><span class="v">${money(sim.alumbrado)}</span></div>
     <div class="kv"><span>Total SE y AP estimado</span><span class="v">${money(sim.totalSEAP)}</span></div>
     <div class="kv"><span>Bomberos</span><span class="v green">${money(FIXED.bomberos)}</span></div>
-    ${sim.subsidioExtraVal ? `<div class="kv"><span>Subsidio extraordinario del Gobierno (-)</span><span class="v blue">${money(-sim.subsidioExtraVal)}</span></div>` : ""}
     <div class="kv totalrow"><span>TOTAL FACTURA ESTIMADA</span><span class="v">${money(sim.totalFactura)}</span></div>
     ${hist ? `<div class="kv"><span>Diferencia vs. factura real</span><span class="v">${money(sim.totalFactura - facturaReal(mes).totalFactura)}</span></div>` : ""}
     ${(!hist && tieneFacturaManual) ? `<div class="kv"><span>Diferencia vs. factura ingresada</span><span class="v">${money(sim.totalFactura - manual.total)}</span></div>` : ""}
