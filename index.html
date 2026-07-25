@@ -680,6 +680,7 @@ async function sincronizarDiaCompartido(year, mes, fecha){
 }
 async function setCutoffOverride(year, mes, desde, hasta){
   const mapaAntes = construirFechaAMes();
+  const rangoAntes = cycleRange(year, mes); // rango efectivo de este mes ANTES del cambio
   const actual = FUTURE_OVERRIDES[`${year}:${mes}`] || {};
   FUTURE_OVERRIDES[`${year}:${mes}`] = {
     desde: desde !== undefined ? desde : actual.desde,
@@ -708,6 +709,28 @@ async function setCutoffOverride(year, mes, desde, hasta){
           };
           await saveOverrides();
         }
+      }
+    }
+  }
+
+  // Si se movió el CORTE (hasta) de este mes, y el mes SIGUIENTE ya tenía guardado un
+  // ajuste propio cuyo inicio coincidía con el corte anterior de este mes (es decir,
+  // ese inicio solo estaba "siguiendo" el día compartido, no fijado a propósito a otra
+  // fecha) — se actualiza ese inicio para que siga compartiendo el día con el nuevo
+  // corte. Sin esto, un mes siguiente con su propio ajuste se quedaba "atascado" con la
+  // fecha vieja cuando cambiabas el corte de este mes.
+  if(hasta !== undefined && rangoAntes.hasta !== hasta){
+    const secuencia = futureSequence();
+    const idx = secuencia.findIndex(s => s.year === year && s.mes === mes);
+    if(idx !== -1 && idx < secuencia.length - 1){
+      const siguiente = secuencia[idx + 1];
+      const overrideSiguiente = FUTURE_OVERRIDES[`${siguiente.year}:${siguiente.mes}`];
+      if(overrideSiguiente && overrideSiguiente.desde === rangoAntes.hasta){
+        FUTURE_OVERRIDES[`${siguiente.year}:${siguiente.mes}`] = {
+          desde: hasta,
+          hasta: overrideSiguiente.hasta
+        };
+        await saveOverrides();
       }
     }
   }
