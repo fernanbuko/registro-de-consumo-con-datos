@@ -3887,7 +3887,19 @@ function attachMonthEvents(year, mes){
       const nuevaFecha = dateEl.value;
       if(!nuevaFecha){ alert('Elige una fecha de corte.'); return; }
       if(nuevoInicio && nuevoInicio > nuevaFecha){ alert('La fecha de inicio no puede ser posterior a la fecha de corte.'); return; }
-      await setCutoffOverride(year, mes, nuevoInicio, nuevaFecha);
+      // Mientras se guarda (sobre todo con cuenta en la nube, que tarda un instante en
+      // llegar al servidor), se deshabilita el botón y se avisa "Guardando…" — así,
+      // si recargas la página, sabes que hay que esperar a que diga "Ajustar días" de
+      // nuevo antes de que sea seguro recargar sin perder el cambio.
+      const textoOriginal = ajustarBtn.textContent;
+      ajustarBtn.disabled = true;
+      ajustarBtn.textContent = 'Guardando…';
+      try{
+        await setCutoffOverride(year, mes, nuevoInicio, nuevaFecha);
+      } finally {
+        ajustarBtn.disabled = false;
+        ajustarBtn.textContent = textoOriginal;
+      }
       renderContent();
     });
   }
@@ -3895,7 +3907,15 @@ function attachMonthEvents(year, mes){
   if(restaurarBtn){
     restaurarBtn.addEventListener('click', async ()=>{
       if(!confirm('¿Restaurar el estimado de 30 días para este mes? Los meses siguientes también se recalcularán.')) return;
-      await clearCutoffOverride(year, mes);
+      const textoOriginal = restaurarBtn.textContent;
+      restaurarBtn.disabled = true;
+      restaurarBtn.textContent = 'Guardando…';
+      try{
+        await clearCutoffOverride(year, mes);
+      } finally {
+        restaurarBtn.disabled = false;
+        restaurarBtn.textContent = textoOriginal;
+      }
       renderContent();
     });
   }
