@@ -1929,7 +1929,11 @@ function simulador(consumo, subsidioExtra){
   const valorConsumo = consumo*tarifaAplicada;
   // El Subsidio Cruzado lo pagan los consumos por ENCIMA del umbral de Dignidad
   // (para financiar el subsidio); quien está dentro del umbral no lo paga.
-  const subsidioCruzado = esDignidad ? 0 : consumo*subsidioProm;
+  // Si se configuró la Unidad de Negocio, se usa la regla formal de CNEL (5%/10%
+  // sobre consumo+comercialización) en vez del promedio observado en las facturas
+  // reales de esta cuenta.
+  const pctSolidario = porcentajeSubsidioSolidario();
+  const subsidioCruzado = esDignidad ? 0 : (pctSolidario !== null ? (valorConsumo + FIXED.comercial) * pctSolidario : consumo*subsidioProm);
   const subtotalSE = valorConsumo + FIXED.comercial + subsidioCruzado - FIXED.subsidio_adulto;
   const alumbrado = consumo*alumbradoProm;
   const totalSEAP = subtotalSE + alumbrado;
@@ -2429,8 +2433,8 @@ function ajustesHTML(){
       ${UNIDADES_NEGOCIO_CNEL.map(u => `<option value="${u}" ${UNIDAD_NEGOCIO===u?'selected':''}>${u}</option>`).join('')}
     </select>
     <div class="note" style="margin-bottom:14px;">${LANG==='en'
-      ? "Sets the Solidarity Subsidy surcharge percentage that applies when your consumption is above your zone's average: 5% for Guayaquil, 10% for the rest of the country. You'll see it as a reference in Tarifa Eléctrica."
-      : "Fija el porcentaje del recargo por Subsidio Solidario que aplica cuando tu consumo está por encima del promedio de tu zona: 5% para Guayaquil, 10% para el resto del país. Lo verás como referencia en Tarifa Eléctrica."}</div>
+      ? "Sets the Solidarity Subsidy surcharge percentage that the Simulator uses (replacing the estimate based on your own historical bills): 5% for Guayaquil, 10% for the rest of the country. Applied when your monthly usage is above 130 kWh."
+      : "Fija el porcentaje del recargo por Subsidio Solidario que usa el Simulador (reemplazando el estimado con tus facturas históricas): 5% para Guayaquil, 10% para el resto del país. Se aplica cuando el consumo del mes supera los 130 kWh."}</div>
 
     <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">${LANG==='en'?'Account number':'Cuenta Contrato'}</label>
     <input type="text" id="clienteCuenta" class="cliente-field" value="${CLIENTE.cuenta||''}" style="width:100%; margin-bottom:10px; padding:8px 10px; border-radius:6px; border:1px solid var(--border); background:var(--card2); color:var(--text);">
@@ -3059,11 +3063,11 @@ function tarifaHTML(){
     <div class="kv"><span>I.V.A. aplicable</span><span class="v blue">${FIXED.iva*100}%</span></div>
     ${UNIDAD_NEGOCIO ? `<div class="kv"><span>${LANG==='en'?'Solidarity Subsidy surcharge':'Recargo Subsidio Solidario'} — ${UNIDAD_NEGOCIO}</span><span class="v blue">${(porcentajeSubsidioSolidario()*100).toFixed(0)}%</span></div>
     <div class="note" style="margin-bottom:10px;">${LANG==='en'
-      ? "This is the surcharge percentage that applies to (consumption + commercialization) when your usage is above your zone's average — it's a reference figure, since the exact zone average isn't public. The simulator above already estimates this cost using your own real bills, which tends to be more precise for this specific account."
-      : "Este es el porcentaje de recargo que se aplica sobre (consumo + comercialización) cuando tu consumo está por encima del promedio de tu zona — es un valor de referencia, ya que el promedio exacto de tu zona no es un dato público. El simulador de arriba ya estima este costo usando tus propias facturas reales, lo cual suele ser más preciso para esta cuenta en particular."}</div>`
+      ? "This percentage is now used by the Simulator (instead of the estimate from your own real bills), applied on (consumption + commercialization) for months over 130 kWh. Note: the formal rule applies above your zone's average consumption, which isn't a public figure — 130 kWh is used here as the closest available threshold."
+      : "Este porcentaje ya lo usa el Simulador (en vez del estimado con tus propias facturas reales), aplicado sobre (consumo + comercialización) en los meses que superan los 130 kWh. Nota: la regla formal aplica sobre el promedio de tu zona, que no es un dato público — se usa 130 kWh aquí como el umbral más cercano disponible."}</div>`
     : `<div class="note" style="margin-bottom:10px;">${LANG==='en'
-      ? "Select your CNEL Business Unit in Ajustes → Datos del Cliente to see the Solidarity Subsidy surcharge percentage that applies to your zone (5% Guayaquil, 10% elsewhere)."
-      : "Selecciona tu Unidad de Negocio de CNEL en Ajustes → Datos del Cliente para ver el porcentaje de recargo por Subsidio Solidario que aplica en tu zona (5% Guayaquil, 10% el resto del país)."}</div>`}
+      ? "Select your CNEL Business Unit in Ajustes → Datos del Cliente to have the Simulator use the formal Solidarity Subsidy surcharge percentage (5% Guayaquil, 10% elsewhere) instead of the estimate from your own real bills."
+      : "Selecciona tu Unidad de Negocio de CNEL en Ajustes → Datos del Cliente para que el Simulador use el porcentaje formal del Subsidio Solidario (5% Guayaquil, 10% el resto del país) en vez del estimado con tus propias facturas reales."}</div>`}
 
     <h3>Histórico real (fuente para calcular promedios)</h3>
     <div style="overflow-x:auto;">
