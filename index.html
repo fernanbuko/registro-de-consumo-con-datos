@@ -1956,6 +1956,8 @@ async function generarReportePDF(){
 async function computeMonth(year, mes){
   let entries = await loadEntries(year, mes);
   const hist = (PERFIL_ACTIVO === 'default' && year===BASE_YEAR && !!DATA[mes]);
+  const secuencia = futureSequence();
+  const idx = secuencia.findIndex(s => s.year === year && s.mes === mes);
   if(hist){
     let changed=false;
     if(entries[DATA[mes].desde]===undefined){ entries[DATA[mes].desde]=DATA[mes].lect_ini; changed=true; }
@@ -1965,8 +1967,6 @@ async function computeMonth(year, mes){
     // El primer mes de la cadena estimada comparte su primer día con el último día
     // (real) del último mes con factura ya cargada — esa misma lectura sirve de
     // partida, así que se auto-llena desde ahí si todavía no se ingresó nada.
-    const secuencia = futureSequence();
-    const idx = secuencia.findIndex(s => s.year === year && s.mes === mes);
     const esPrimeroDeLaCadena = idx === 0;
     if(esPrimeroDeLaCadena && PERFIL_ACTIVO === 'default'){
       const ultimoHistorico = HIST_MESES[HIST_MESES.length-1];
@@ -2001,7 +2001,30 @@ async function computeMonth(year, mes){
   const days = dayList(year, mes);
   const rows = days.map(fecha => ({fecha, lectura: entryValor(entries[fecha]), hora: entryHora(entries[fecha]), foto: entries[fecha] ? entries[fecha].foto : undefined}));
   for(let i=0;i<rows.length;i++){
-    if(i===0 || rows[i].lectura===null || rows[i-1].lectura===null){ rows[i].consumo=null; }
+    if(i===0){
+      rows[i].consumo = null;
+      // El primer día también puede tener su propio consumo calculado, usando el día
+      // justo antes de él — que vive en el mes anterior, ya que este día se comparte
+      // como el límite entre ambos.
+      if(!hist){
+        let entriesMesAnterior = null;
+        if(idx > 0){
+          const anterior = secuencia[idx-1];
+          entriesMesAnterior = await loadEntries(anterior.year, anterior.mes);
+        } else if(idx === 0 && PERFIL_ACTIVO === 'default'){
+          const ultimoHistorico = HIST_MESES[HIST_MESES.length-1];
+          if(DATA[ultimoHistorico]) entriesMesAnterior = await loadEntries(BASE_YEAR, ultimoHistorico);
+        }
+        if(entriesMesAnterior){
+          const diaAnterior = addDays(rows[0].fecha, -1);
+          const lecturaAnterior = entryValor(entriesMesAnterior[diaAnterior]);
+          if(lecturaAnterior !== null && rows[0].lectura !== null){
+            rows[i].consumo = +(rows[0].lectura - lecturaAnterior).toFixed(2);
+          }
+        }
+      }
+    }
+    else if(rows[i].lectura===null || rows[i-1].lectura===null){ rows[i].consumo=null; }
     else { rows[i].consumo = +(rows[i].lectura - rows[i-1].lectura).toFixed(2); }
   }
   const consumoIngresado = rows.reduce((s,r)=> s + (r.consumo||0), 0);
