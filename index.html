@@ -575,10 +575,19 @@ async function saveOverrides(){
   await storageSet(`future_overrides:${PERFIL_ACTIVO}`, JSON.stringify(FUTURE_OVERRIDES));
 }
 // Mapa fecha -> {year, mes} de a qué mes pertenece cada día HOY MISMO, según los rangos
-// ya calculados (FUTURE_RANGES_MAP). Se usa para detectar qué días "se mueven" de mes
-// cuando cambia una fecha de corte.
+// ya calculados (FUTURE_RANGES_MAP) — incluyendo también los meses con factura real ya
+// cargada, ya que un cambio en el inicio del primer mes estimado puede "robarle" días
+// al último mes histórico. Se usa para detectar qué días "se mueven" de mes cuando
+// cambia una fecha de corte.
 function construirFechaAMes(){
   const mapa = {};
+  if(PERFIL_ACTIVO === 'default'){
+    HIST_MESES.forEach(mes=>{
+      if(DATA[mes]){
+        dateRange(DATA[mes].desde, DATA[mes].hasta).forEach(fecha => { mapa[fecha] = {year: BASE_YEAR, mes}; });
+      }
+    });
+  }
   futureSequence().forEach(({year, mes})=>{
     dayList(year, mes).forEach(fecha => { mapa[fecha] = {year, mes}; });
   });
