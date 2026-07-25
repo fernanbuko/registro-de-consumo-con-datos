@@ -574,19 +574,103 @@ async function loadOverrides(){
 async function saveOverrides(){
   await storageSet(`future_overrides:${PERFIL_ACTIVO}`, JSON.stringify(FUTURE_OVERRIDES));
 }
+// Mapa fecha -> {year, mes} de a qué mes pertenece cada día HOY MISMO, según los rangos
+// ya calculados (FUTURE_RANGES_MAP). Se usa para detectar qué días "se mueven" de mes
+// cuando cambia una fecha de corte.
+function construirFechaAMes(){
+  const mapa = {};
+  futureSequence().forEach(({year, mes})=>{
+    dayList(year, mes).forEach(fecha => { mapa[fecha] = {year, mes}; });
+  });
+  return mapa;
+}
+// Si un día pasó de pertenecer a un mes a pertenecer a otro (por un cambio de fecha de
+// corte), esto mueve su lectura/hora/foto ya guardada al mes correcto — para que nunca
+// se "pierda" un dato ya ingresado solo porque cambió de qué mes cuelga ese día.
+async function migrarLecturasSiCambioDeRango(mapaAntes, mapaDespues){
+  const cambios = [];
+  const todasLasFechas = new Set([...Object.keys(mapaAntes), ...Object.keys(mapaDespues)]);
+  todasLasFechas.forEach(fecha=>{
+    const antes = mapaAntes[fecha];
+    const despues = mapaDespues[fecha];
+    if(!antes || !despues) return;
+    if(antes.year !== despues.year || antes.mes !== despues.mes){
+      cambios.push({fecha, antes, despues});
+    }
+  });
+  if(cambios.length === 0) return;
+
+  const cache = {}; // "year:mes" -> entries (una sola carga por mes involucrado)
+  async function obtenerBucket(year, mes){
+    const key = `${year}:${mes}`;
+    if(!cache[key]) cache[key] = await loadEntries(year, mes);
+    return cache[key];
+  }
+
+  for(const c of cambios){
+    const origenBucket = await obtenerBucket(c.antes.year, c.antes.mes);
+    const destinoBucket = await obtenerBucket(c.despues.year, c.despues.mes);
+    if(origenBucket[c.fecha]){
+      destinoBucket[c.fecha] = origenBucket[c.fecha];
+      delete origenBucket[c.fecha];
+    }
+  }
+
+  for(const key of Object.keys(cache)){
+    const [y, m] = key.split(':');
+    await saveEntries(parseInt(y), m, cache[key]);
+  }
+}
+// Un mes es "histórico" (con fechas fijas de una factura real, no de la cadena
+// estimada) cuando corresponde a un periodo ya facturado del perfil real.
+function esMesHistorico(year, mes){
+  return PERFIL_ACTIVO === 'default' && year === BASE_YEAR && !!DATA[mes];
+}
 async function setCutoffOverride(year, mes, desde, hasta){
+  const mapaAntes = construirFechaAMes();
   const actual = FUTURE_OVERRIDES[`${year}:${mes}`] || {};
   FUTURE_OVERRIDES[`${year}:${mes}`] = {
     desde: desde !== undefined ? desde : actual.desde,
     hasta: hasta !== undefined ? hasta : actual.hasta
   };
   await saveOverrides();
+
+  // Si se movió el inicio hacia ADELANTE, los días que quedaron justo antes ya no son
+  // de este mes — para que no queden "sin mes", se alarga automáticamente el mes
+  // anterior (si es un mes de la cadena estimada, no uno con factura real ya fija)
+  // para que termine justo un día antes de este nuevo inicio.
+  if(desde !== undefined){
+    const secuencia = futureSequence();
+    const idx = secuencia.findIndex(s => s.year === year && s.mes === mes);
+    if(idx > 0){
+      const anterior = secuencia[idx - 1];
+      if(!esMesHistorico(anterior.year, anterior.mes)){
+        buildFutureRanges();
+        const rangoAnterior = cycleRange(anterior.year, anterior.mes);
+        const nuevoFinAnterior = addDays(desde, -1);
+        if(nuevoFinAnterior > rangoAnterior.hasta){
+          const actualAnterior = FUTURE_OVERRIDES[`${anterior.year}:${anterior.mes}`] || {};
+          FUTURE_OVERRIDES[`${anterior.year}:${anterior.mes}`] = {
+            desde: actualAnterior.desde,
+            hasta: nuevoFinAnterior
+          };
+          await saveOverrides();
+        }
+      }
+    }
+  }
+
   buildFutureRanges();
+  const mapaDespues = construirFechaAMes();
+  await migrarLecturasSiCambioDeRango(mapaAntes, mapaDespues);
 }
 async function clearCutoffOverride(year, mes){
+  const mapaAntes = construirFechaAMes();
   delete FUTURE_OVERRIDES[`${year}:${mes}`];
   await saveOverrides();
   buildFutureRanges();
+  const mapaDespues = construirFechaAMes();
+  await migrarLecturasSiCambioDeRango(mapaAntes, mapaDespues);
 }
 
 // Secuencia ordenada de meses "estimados": para el perfil real, Julio-2026 en adelante
