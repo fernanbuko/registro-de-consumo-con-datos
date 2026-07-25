@@ -790,6 +790,38 @@ function dayList(year, mes){
   return dateRange(r.desde, r.hasta);
 }
 
+// Revisa toda la cadena de meses estimados/manuales (en orden) y corrige automáticamente
+// cualquier "inicio" guardado que ya no coincida con el "corte" real del mes anterior.
+// Esto puede pasar por ajustes guardados de antes de que existiera la sincronización
+// hacia adelante, o si se editaron varios meses seguidos. Se salta la comparación justo
+// después de un mes histórico (factura real ya fija), porque ahí SÍ puede haber una
+// diferencia de un día si tu factura real empezó un día distinto — eso es normal, no un
+// desfase a corregir. Se puede llamar tantas veces como se quiera (es barata y no hace
+// nada si ya todo está sincronizado); se usa como "auto-reparación" cada vez que se abre
+// el Resumen Anual, así el usuario no tiene que entrar mes por mes a corregir a mano.
+async function repararEncadenamientoFuturo(){
+  buildFutureRanges();
+  const secuencia = futureSequence();
+  let corregido = false;
+  let cursorAnterior = null;
+  for(let i=0; i<secuencia.length; i++){
+    const {year, mes} = secuencia[i];
+    if(cursorAnterior !== null){
+      const anterior = secuencia[i-1];
+      const key = `${year}:${mes}`;
+      const override = FUTURE_OVERRIDES[key];
+      if(override && override.desde && override.desde !== cursorAnterior && !esMesHistorico(anterior.year, anterior.mes)){
+        FUTURE_OVERRIDES[key] = {desde: cursorAnterior, hasta: override.hasta};
+        corregido = true;
+        buildFutureRanges();
+      }
+    }
+    cursorAnterior = cycleRange(year, mes).hasta;
+  }
+  if(corregido){ await saveOverrides(); buildFutureRanges(); }
+  return corregido;
+}
+
 // ---- Años disponibles (se guardan para que "Agregar año" persista)
 let YEARS = [BASE_YEAR];
 async function loadYears(){
@@ -813,35 +845,16 @@ async function addYear(){
 }
 
 const HIST_MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio"];
-// Ajuste por regresión lineal simple (mínimos cuadrados): y = intercepto + pendiente*x.
-// Se usa para el Alumbrado Público porque, a diferencia del Valor Consumo, no es
-// puramente proporcional al consumo del mes — las 6 facturas reales muestran que hay un
-// componente fijo además del componente por kWh (un simple promedio de $/kWh sobreestima
-// unos meses y subestima otros).
-function regresionLineal(puntos){
-  const n = puntos.length;
-  const sumX = puntos.reduce((s,p)=>s+p.x,0);
-  const sumY = puntos.reduce((s,p)=>s+p.y,0);
-  const sumXY = puntos.reduce((s,p)=>s+p.x*p.y,0);
-  const sumX2 = puntos.reduce((s,p)=>s+p.x*p.x,0);
-  const pendiente = (n*sumXY - sumX*sumY) / (n*sumX2 - sumX*sumX);
-  const intercepto = (sumY - pendiente*sumX) / n;
-  return {intercepto, pendiente};
-}
 function tarifaPromedios(){
-  const rates=[], subRatios=[], alumPuntos=[];
+  const rates=[], subRatios=[], alumRatios=[];
   HIST_MESES.forEach(m=>{
     const d = DATA[m];
     rates.push(d.valor_consumo/d.consumo);
     subRatios.push(d.subsidio_cruzado/d.consumo);
-    alumPuntos.push({x: d.consumo, y: d.alumbrado});
+    alumRatios.push(d.alumbrado/d.consumo);
   });
   const avg = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
-  const {intercepto: alumbradoFijo, pendiente: alumbradoTasa} = regresionLineal(alumPuntos);
-  // alumbradoProm se conserva (promedio simple de $/kWh) solo para mostrarlo como
-  // referencia informativa; el cálculo real usa alumbradoFijo + alumbradoTasa*consumo.
-  const alumbradoProm = avg(alumPuntos.map(p => p.y/p.x));
-  return { tarifaProm: avg(rates), subsidioProm: avg(subRatios), alumbradoProm, alumbradoFijo, alumbradoTasa };
+  return { tarifaProm: avg(rates), subsidioProm: avg(subRatios), alumbradoProm: avg(alumRatios) };
 }
 const FIXED = { comercial:1.41, bomberos:2.41, subsidio_adulto:6.41, iva:0 };
 const SUBSIDIO_ADULTO_MONTO = 6.41; // monto observado en las facturas reales de esta cuenta
@@ -1856,14 +1869,13 @@ function chartScriptTag(canvasId, labels, data, label){
 }
 
 function tarifaAplicadaHTML(){
-  const {tarifaProm, subsidioProm, alumbradoFijo, alumbradoTasa} = tarifaPromedios();
+  const {tarifaProm, subsidioProm, alumbradoProm} = tarifaPromedios();
   return `<h2>Tarifa Aplicada (a la fecha de este reporte)</h2>
     <table>
       <tr><th>Concepto</th><th>Valor</th></tr>
       <tr><td>Tarifa energía promedio</td><td>${rate(tarifaProm)}/kWh</td></tr>
       <tr><td>Subsidio Cruzado promedio</td><td>${rate(subsidioProm)}/kWh</td></tr>
-      <tr><td>Alumbrado Público (cargo fijo)</td><td>${money(alumbradoFijo)}</td></tr>
-      <tr><td>Alumbrado Público (por kWh)</td><td>${rate(alumbradoTasa)}/kWh</td></tr>
+      <tr><td>Alumbrado Público promedio</td><td>${rate(alumbradoProm)}/kWh</td></tr>
       <tr><td>Comercialización mensual (fijo)</td><td>${money(FIXED.comercial)}</td></tr>
       <tr><td>Bomberos (fijo)</td><td>${money(FIXED.bomberos)}</td></tr>
       <tr><td>Subsidio Ley Adulto Mayor (fijo, se resta)</td><td>${money(FIXED.subsidio_adulto)}</td></tr>
@@ -2193,7 +2205,7 @@ function valorEnergiaPorConsumo(consumo, mes, tarifaProm){
   return {valorConsumo, tarifaAplicada, esDignidad};
 }
 function simulador(consumo, subsidioExtra, mes){
-  const {tarifaProm, subsidioProm, alumbradoFijo, alumbradoTasa} = tarifaPromedios();
+  const {tarifaProm, subsidioProm, alumbradoProm} = tarifaPromedios();
   if(!consumo || consumo<=0) return null;
   const umbralUN = UMBRALES_SOLIDARIO_POR_UN[UNIDAD_NEGOCIO];
   // Si se configuró la Unidad de Negocio, se usa su umbral real de Tarifa Dignidad
@@ -2226,12 +2238,7 @@ function simulador(consumo, subsidioExtra, mes){
   // El subsidio/compensación extraordinaria se resta DENTRO del Subtotal SE (no solo al
   // final) — así es como aparece en las facturas reales (ej. el Decreto 379 de Mayo).
   const subtotalSE = valorConsumo + FIXED.comercial + subsidioCruzado - FIXED.subsidio_adulto - subsidioExtraVal;
-  // Alumbrado Público: componente fijo + componente por kWh (regresión sobre las 6
-  // facturas reales) — más preciso que un simple promedio de $/kWh porque el rubro
-  // real no es puramente proporcional al consumo. Se protege contra consumos muy bajos
-  // donde la recta podría dar un valor negativo (no hay facturas reales tan bajas para
-  // calibrar esa zona).
-  const alumbrado = Math.max(0, alumbradoFijo + consumo*alumbradoTasa);
+  const alumbrado = consumo*alumbradoProm;
   const totalSEAP = subtotalSE + alumbrado;
   const totalFactura = totalSEAP + FIXED.bomberos;
   return {valorConsumo, subsidioCruzado, subtotalSE, alumbrado, totalSEAP, subsidioExtraVal, totalFactura, tarifaProm: tarifaAplicada, esDignidad};
@@ -3163,6 +3170,9 @@ function attachDiasPendientesEvents(){
 }
 
 async function resumenHTML(year){
+  // Se auto-repara la cadena de fechas cada vez que se abre esta pantalla, por si quedó
+  // algún mes con un ajuste guardado que ya no coincide con el corte del mes anterior.
+  await repararEncadenamientoFuturo();
   const esDefault = PERFIL_ACTIVO === 'default';
   const facturados = (esDefault && year===BASE_YEAR) ? MESES.filter(m => !!DATA[m]) : [];
   const pendientes = MESES.filter(m => !(esDefault && year===BASE_YEAR && DATA[m]));
@@ -3175,7 +3185,10 @@ async function resumenHTML(year){
     const c = await computeMonth(year, mes);
     const lectIni = c.rows[0]?.lectura;
     const lectFin = c.rows[c.rows.length-1]?.lectura;
-    const dias = c.rows.length - 1;
+    // Antes se usaba rows.length-1, pero desde que el primer día del periodo también
+    // puede tener su propio consumo calculado, el máximo real es rows.length — así
+    // coincide con "Días con consumo calculado" que se ve dentro de cada mes.
+    const dias = c.rows.length;
     totalDias += dias;
     const desde = c.rows[0]?.fecha;
     const hasta = c.rows[c.rows.length-1]?.fecha;
@@ -3250,7 +3263,7 @@ async function resumenHTML(year){
       ${diasRows}
     </table>
     </div>
-    <div class="note">Para los meses con factura real, los días vienen del periodo exacto de la factura (fecha desde/hasta). Para los meses estimados, se calcula con un ciclo de 30 días encadenado desde el fin del último mes facturado (o desde la fecha de corte que hayas ajustado). Este número representa el periodo facturado (días entre la primera y la última lectura), que puede ser distinto al total que ves en "Días con consumo calculado" dentro de cada mes.</div>
+    <div class="note">Para los meses con factura real, los días vienen del periodo exacto de la factura (fecha desde/hasta). Para los meses estimados, se calcula con un ciclo de 30 días encadenado desde el fin del último mes facturado (o desde la fecha de corte que hayas ajustado). Este número coincide con el máximo de "Días con consumo calculado" que ves dentro de cada mes. Esta pantalla también se auto-corrige sola cada vez que la abres, por si algún mes había quedado con una fecha de inicio desincronizada del corte del mes anterior.</div>
     <div class="kv totalrow" style="margin-top:10px;"><span>Total de días calculados (los 12 meses de ${year})</span><span class="v">${totalDias} días</span></div>
     <div class="note">Este total no da 365 por dos razones normales: (1) cada mes resta el día de arranque, que no genera consumo propio; y (2) los periodos siguen tus ciclos reales de facturación, no el año calendario — por eso el año "${year}" en esta app empieza y termina unos días antes/después del 1 de enero y 31 de diciembre.</div>
   </div>
@@ -3341,7 +3354,7 @@ async function resumenChart(year){
 }
 
 function tarifaHTML(){
-  const {tarifaProm, subsidioProm, alumbradoFijo, alumbradoTasa} = tarifaPromedios();
+  const {tarifaProm, subsidioProm, alumbradoProm} = tarifaPromedios();
   let histRows = "";
   HIST_MESES.forEach(m=>{
     const d = DATA[m];
@@ -3380,8 +3393,7 @@ function tarifaHTML(){
     <h3>Promedios usados en el Simulador</h3>
     <div class="kv"><span>Tarifa energía promedio</span><span class="v">${rate(tarifaProm)} /kWh</span></div>
     <div class="kv"><span>Subsidio Cruzado promedio</span><span class="v">${rate(subsidioProm)} /kWh</span></div>
-    <div class="kv"><span>Alumbrado Público (cargo fijo)</span><span class="v">${money(alumbradoFijo)}</span></div>
-    <div class="kv"><span>Alumbrado Público (por kWh)</span><span class="v">${rate(alumbradoTasa)} /kWh</span></div>
+    <div class="kv"><span>Alumbrado Público promedio</span><span class="v">${rate(alumbradoProm)} /kWh</span></div>
 
     <h3>Referencia oficial (Pliego Tarifario Ecuador 2026)</h3>
     <div class="kv"><span>Tarifa Dignidad (hasta 130 kWh/mes, Costa)</span><span class="v blue">$0.0400 /kWh</span></div>
