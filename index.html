@@ -795,14 +795,14 @@ function dayList(year, mes){
 }
 
 // Revisa toda la cadena de meses estimados/manuales (en orden) y corrige automáticamente
-// cualquier "inicio" guardado que ya no coincida con el "corte" real del mes anterior.
-// Esto puede pasar por ajustes guardados de antes de que existiera la sincronización
-// hacia adelante, o si se editaron varios meses seguidos. Se salta la comparación justo
-// después de un mes histórico (factura real ya fija), porque ahí SÍ puede haber una
-// diferencia de un día si tu factura real empezó un día distinto — eso es normal, no un
-// desfase a corregir. Se puede llamar tantas veces como se quiera (es barata y no hace
-// nada si ya todo está sincronizado); se usa como "auto-reparación" cada vez que se abre
-// el Resumen Anual, así el usuario no tiene que entrar mes por mes a corregir a mano.
+// cualquier "inicio" guardado que ya no coincida con el día siguiente al "corte" real del
+// mes anterior. Esto puede pasar por ajustes guardados de antes de que existiera la
+// sincronización hacia adelante, o si se editaron varios meses seguidos. Se salta la
+// comparación justo después de un mes histórico (factura real ya fija), porque ahí SÍ
+// puede haber una diferencia (esa transición no se auto-corrige). Se puede llamar tantas
+// veces como se quiera (es barata y no hace nada si ya todo está sincronizado); se usa
+// como "auto-reparación" cada vez que se abre el Resumen Anual, así el usuario no tiene
+// que entrar mes por mes a corregir a mano.
 async function repararEncadenamientoFuturo(){
   buildFutureRanges();
   const secuencia = futureSequence();
@@ -814,8 +814,9 @@ async function repararEncadenamientoFuturo(){
       const anterior = secuencia[i-1];
       const key = `${year}:${mes}`;
       const override = FUTURE_OVERRIDES[key];
-      if(override && override.desde && override.desde !== cursorAnterior && !esMesHistorico(anterior.year, anterior.mes)){
-        FUTURE_OVERRIDES[key] = {desde: cursorAnterior, hasta: override.hasta};
+      const inicioEsperado = addDays(cursorAnterior, 1);
+      if(override && override.desde && override.desde !== inicioEsperado && !esMesHistorico(anterior.year, anterior.mes)){
+        FUTURE_OVERRIDES[key] = {desde: inicioEsperado, hasta: override.hasta};
         corregido = true;
         buildFutureRanges();
       }
