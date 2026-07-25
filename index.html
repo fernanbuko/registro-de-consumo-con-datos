@@ -2150,11 +2150,13 @@ function simulador(consumo, subsidioExtra){
   } else {
     subsidioCruzado = consumo*subsidioProm;
   }
-  const subtotalSE = valorConsumo + FIXED.comercial + subsidioCruzado - FIXED.subsidio_adulto;
+  const subsidioExtraVal = subsidioExtra || 0;
+  // El subsidio/compensación extraordinaria se resta DENTRO del Subtotal SE (no solo al
+  // final) — así es como aparece en las facturas reales (ej. el Decreto 379 de Mayo).
+  const subtotalSE = valorConsumo + FIXED.comercial + subsidioCruzado - FIXED.subsidio_adulto - subsidioExtraVal;
   const alumbrado = consumo*alumbradoProm;
   const totalSEAP = subtotalSE + alumbrado;
-  const subsidioExtraVal = subsidioExtra || 0;
-  const totalFactura = totalSEAP + FIXED.bomberos - subsidioExtraVal;
+  const totalFactura = totalSEAP + FIXED.bomberos;
   return {valorConsumo, subsidioCruzado, subtotalSE, alumbrado, totalSEAP, subsidioExtraVal, totalFactura, tarifaProm: tarifaAplicada, esDignidad};
 }
 function facturaReal(mes){
