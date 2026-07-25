@@ -551,7 +551,10 @@ function getCycleStart(){
   // así que sus meses estimados siguen encadenados desde el fin de Junio real.
   // Cualquier otro perfil (propiedad nueva) no tiene esas facturas, así que
   // arranca su propio ciclo desde el 1 de enero del año base.
-  return PERFIL_ACTIVO === 'default' ? "2026-06-24" : `${BASE_YEAR}-01-01`;
+  // NOTA: se usa el mismo día del corte (no el día siguiente), porque esa lectura
+  // sirve tanto de cierre del mes anterior como de partida del nuevo — por eso ese
+  // día aparece en ambos meses.
+  return PERFIL_ACTIVO === 'default' ? "2026-06-23" : `${BASE_YEAR}-01-01`;
 }
 
 function addDays(fecha, n){
@@ -574,54 +577,65 @@ async function loadOverrides(){
 async function saveOverrides(){
   await storageSet(`future_overrides:${PERFIL_ACTIVO}`, JSON.stringify(FUTURE_OVERRIDES));
 }
-// Mapa fecha -> {year, mes} de a qué mes pertenece cada día HOY MISMO, según los rangos
-// ya calculados (FUTURE_RANGES_MAP) — incluyendo también los meses con factura real ya
-// cargada, ya que un cambio en el inicio del primer mes estimado puede "robarle" días
-// al último mes histórico. Se usa para detectar qué días "se mueven" de mes cuando
-// cambia una fecha de corte.
+// Mapa fecha -> lista de {year, mes} a los que pertenece ese día HOY MISMO — puede ser
+// más de un mes, ya que el día de corte se comparte entre el mes que cierra y el que
+// abre. Incluye también los meses con factura real ya cargada, ya que un cambio en el
+// inicio del primer mes estimado puede "robarle" días al último mes histórico.
+// Se usa para detectar qué días cambian de dueño(s) cuando cambia una fecha de corte.
 function construirFechaAMes(){
   const mapa = {};
+  function agregar(fecha, year, mes){
+    if(!mapa[fecha]) mapa[fecha] = [];
+    if(!mapa[fecha].some(m => m.year===year && m.mes===mes)) mapa[fecha].push({year, mes});
+  }
   if(PERFIL_ACTIVO === 'default'){
     HIST_MESES.forEach(mes=>{
       if(DATA[mes]){
-        dateRange(DATA[mes].desde, DATA[mes].hasta).forEach(fecha => { mapa[fecha] = {year: BASE_YEAR, mes}; });
+        dateRange(DATA[mes].desde, DATA[mes].hasta).forEach(fecha => agregar(fecha, BASE_YEAR, mes));
       }
     });
   }
   futureSequence().forEach(({year, mes})=>{
-    dayList(year, mes).forEach(fecha => { mapa[fecha] = {year, mes}; });
+    dayList(year, mes).forEach(fecha => agregar(fecha, year, mes));
   });
   return mapa;
 }
-// Si un día pasó de pertenecer a un mes a pertenecer a otro (por un cambio de fecha de
-// corte), esto mueve su lectura/hora/foto ya guardada al mes correcto — para que nunca
-// se "pierda" un dato ya ingresado solo porque cambió de qué mes cuelga ese día.
+// Si un día cambió de qué mes(es) cuelga (por un cambio de fecha de corte), esto copia
+// su lectura/hora/foto ya guardada a cualquier mes que la haya ganado, y la quita de
+// los meses que ya no incluyen ese día — para que nunca se "pierda" un dato ya
+// ingresado, y para que un día compartido se vea igual en ambos lados.
 async function migrarLecturasSiCambioDeRango(mapaAntes, mapaDespues){
-  const cambios = [];
   const todasLasFechas = new Set([...Object.keys(mapaAntes), ...Object.keys(mapaDespues)]);
-  todasLasFechas.forEach(fecha=>{
-    const antes = mapaAntes[fecha];
-    const despues = mapaDespues[fecha];
-    if(!antes || !despues) return;
-    if(antes.year !== despues.year || antes.mes !== despues.mes){
-      cambios.push({fecha, antes, despues});
-    }
-  });
-  if(cambios.length === 0) return;
-
   const cache = {}; // "year:mes" -> entries (una sola carga por mes involucrado)
   async function obtenerBucket(year, mes){
     const key = `${year}:${mes}`;
     if(!cache[key]) cache[key] = await loadEntries(year, mes);
     return cache[key];
   }
+  const mismaClave = (a,b) => a.year===b.year && a.mes===b.mes;
 
-  for(const c of cambios){
-    const origenBucket = await obtenerBucket(c.antes.year, c.antes.mes);
-    const destinoBucket = await obtenerBucket(c.despues.year, c.despues.mes);
-    if(origenBucket[c.fecha]){
-      destinoBucket[c.fecha] = origenBucket[c.fecha];
-      delete origenBucket[c.fecha];
+  for(const fecha of todasLasFechas){
+    const antes = mapaAntes[fecha] || [];
+    const despues = mapaDespues[fecha] || [];
+    const ganados = despues.filter(d => !antes.some(a => mismaClave(a,d)));
+    const perdidos = antes.filter(a => !despues.some(d => mismaClave(d,a)));
+    if(ganados.length === 0 && perdidos.length === 0) continue;
+
+    // Buscar un valor ya guardado en cualquiera de los meses "antes" (los que ya
+    // tenían este día) para usarlo como fuente al copiarlo a los meses nuevos.
+    let valorFuente = null;
+    for(const m of antes){
+      const bucket = await obtenerBucket(m.year, m.mes);
+      if(bucket[fecha]){ valorFuente = bucket[fecha]; break; }
+    }
+
+    for(const m of ganados){
+      const bucket = await obtenerBucket(m.year, m.mes);
+      if(valorFuente && !bucket[fecha]) bucket[fecha] = {...valorFuente};
+    }
+    for(const m of perdidos){
+      const bucket = await obtenerBucket(m.year, m.mes);
+      delete bucket[fecha];
     }
   }
 
@@ -635,6 +649,35 @@ async function migrarLecturasSiCambioDeRango(mapaAntes, mapaDespues){
 function esMesHistorico(year, mes){
   return PERFIL_ACTIVO === 'default' && year === BASE_YEAR && !!DATA[mes];
 }
+// El día de corte es el mismo día que abre el mes siguiente (esa misma lectura cierra
+// un mes y arranca el otro) — así que si guardas la lectura/hora/foto de ese día en un
+// mes, se refleja automáticamente en el mes vecino también, para que se vea igual en
+// los dos lados.
+async function sincronizarDiaCompartido(year, mes, fecha){
+  if(esMesHistorico(year, mes)) return; // el mes histórico ya tiene su lectura real fija
+  const secuencia = futureSequence();
+  const idx = secuencia.findIndex(s => s.year === year && s.mes === mes);
+  if(idx === -1) return;
+  const rango = cycleRange(year, mes);
+  const entries = await loadEntries(year, mes);
+  const entryActual = entries[fecha];
+  if(!entryActual) return;
+
+  if(fecha === rango.hasta && idx < secuencia.length-1){
+    const siguiente = secuencia[idx+1];
+    let entriesVecino = await loadEntries(siguiente.year, siguiente.mes);
+    entriesVecino[fecha] = {...entryActual};
+    await saveEntries(siguiente.year, siguiente.mes, entriesVecino);
+  }
+  if(fecha === rango.desde && idx > 0){
+    const anterior = secuencia[idx-1];
+    if(!esMesHistorico(anterior.year, anterior.mes)){
+      let entriesAnterior = await loadEntries(anterior.year, anterior.mes);
+      entriesAnterior[fecha] = {...entryActual};
+      await saveEntries(anterior.year, anterior.mes, entriesAnterior);
+    }
+  }
+}
 async function setCutoffOverride(year, mes, desde, hasta){
   const mapaAntes = construirFechaAMes();
   const actual = FUTURE_OVERRIDES[`${year}:${mes}`] || {};
@@ -647,7 +690,7 @@ async function setCutoffOverride(year, mes, desde, hasta){
   // Si se movió el inicio hacia ADELANTE, los días que quedaron justo antes ya no son
   // de este mes — para que no queden "sin mes", se alarga automáticamente el mes
   // anterior (si es un mes de la cadena estimada, no uno con factura real ya fija)
-  // para que termine justo un día antes de este nuevo inicio.
+  // para que termine justo EN este nuevo inicio (el día de corte se comparte).
   if(desde !== undefined){
     const secuencia = futureSequence();
     const idx = secuencia.findIndex(s => s.year === year && s.mes === mes);
@@ -656,7 +699,7 @@ async function setCutoffOverride(year, mes, desde, hasta){
       if(!esMesHistorico(anterior.year, anterior.mes)){
         buildFutureRanges();
         const rangoAnterior = cycleRange(anterior.year, anterior.mes);
-        const nuevoFinAnterior = addDays(desde, -1);
+        const nuevoFinAnterior = desde;
         if(nuevoFinAnterior > rangoAnterior.hasta){
           const actualAnterior = FUTURE_OVERRIDES[`${anterior.year}:${anterior.mes}`] || {};
           FUTURE_OVERRIDES[`${anterior.year}:${anterior.mes}`] = {
@@ -707,7 +750,9 @@ function buildFutureRanges(){
     const desde = (override && override.desde) ? override.desde : cursor;
     const hasta = (override && override.hasta) ? override.hasta : addDays(desde, FUTURE_CYCLE_LEN-1);
     FUTURE_RANGES_MAP[key] = {desde, hasta};
-    cursor = addDays(hasta, 1);
+    // El día de corte (hasta) es el mismo día en que arranca el siguiente mes — esa
+    // misma lectura cierra un mes y abre el otro, así que ese día se ve en ambos.
+    cursor = hasta;
   });
 }
 
@@ -1916,6 +1961,20 @@ async function computeMonth(year, mes){
     if(entries[DATA[mes].desde]===undefined){ entries[DATA[mes].desde]=DATA[mes].lect_ini; changed=true; }
     if(entries[DATA[mes].hasta]===undefined){ entries[DATA[mes].hasta]=DATA[mes].lect_fin; changed=true; }
     if(changed) await saveEntries(year, mes, entries);
+  } else {
+    // El primer mes de la cadena estimada comparte su primer día con el último día
+    // (real) del último mes con factura ya cargada — esa misma lectura sirve de
+    // partida, así que se auto-llena desde ahí si todavía no se ingresó nada.
+    const secuencia = futureSequence();
+    const esPrimeroDeLaCadena = secuencia.length && secuencia[0].year === year && secuencia[0].mes === mes;
+    if(esPrimeroDeLaCadena && PERFIL_ACTIVO === 'default'){
+      const ultimoHistorico = HIST_MESES[HIST_MESES.length-1];
+      const rango = cycleRange(year, mes);
+      if(DATA[ultimoHistorico] && entries[rango.desde]===undefined){
+        entries[rango.desde] = DATA[ultimoHistorico].lect_fin;
+        await saveEntries(year, mes, entries);
+      }
+    }
   }
   const days = dayList(year, mes);
   const rows = days.map(fecha => ({fecha, lectura: entryValor(entries[fecha]), hora: entryHora(entries[fecha]), foto: entries[fecha] ? entries[fecha].foto : undefined}));
@@ -2748,12 +2807,14 @@ async function guardarFilaPendiente(fecha, year, mes){
   let entries = await loadEntries(year, mes);
   const fotoExistente = entries[fecha] ? entries[fecha].foto : undefined;
   if(isNaN(val)){
-    delete entries[fecha];
+    if(fotoExistente) entries[fecha] = {foto: fotoExistente};
+    else delete entries[fecha];
   } else {
     entries[fecha] = {valor: val, hora};
     if(fotoExistente) entries[fecha].foto = fotoExistente;
   }
   await saveEntries(year, mes, entries);
+  if(!isNaN(val)) await sincronizarDiaCompartido(year, mes, fecha);
 }
 
 function attachDiasPendientesEvents(){
@@ -3471,12 +3532,15 @@ function attachMonthEvents(year, mes){
     let entries = await loadEntries(year, mes);
     const fotoExistente = entries[fecha] ? entries[fecha].foto : undefined;
     if(isNaN(val)){
-      delete entries[fecha];
+      // Si tenía una foto adjunta, se conserva (solo se borra la lectura/hora, nunca la foto).
+      if(fotoExistente) entries[fecha] = {foto: fotoExistente};
+      else delete entries[fecha];
     } else {
       entries[fecha] = {valor: val, hora};
       if(fotoExistente) entries[fecha].foto = fotoExistente;
     }
     await saveEntries(year, mes, entries);
+    if(!isNaN(val)) await sincronizarDiaCompartido(year, mes, fecha);
   }
 
   // Guarda en segundo plano, actualiza al instante la celda de consumo de esa fila,
