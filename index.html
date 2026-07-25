@@ -950,7 +950,17 @@ const UMBRALES_SOLIDARIO_POR_UN = {
 // renta — no toda la energía se cobra al precio del bloque más alto alcanzado.
 // CNEL Guayaquil tiene tarifa propia (más baja) en los primeros 3 bloques; el resto de
 // Unidades de Negocio de CNEL comparten esta misma tabla general.
-const TARIFA_BLOQUES_GENERAL = [
+// IMPORTANTE: los bloques de 501-700 y 701-1000 kWh tienen un valor distinto según la
+// temporada del mes de consumo (Diciembre-Mayo vs. Junio-Noviembre) — así consta en el
+// Anexo 1 del Pliego Tarifario. El resto de bloques (incluido todo lo que está por
+// encima de 1000 kWh) es igual todo el año. Antes solo teníamos cargada la tabla de
+// Junio-Noviembre y se aplicaba los 12 meses, lo cual sobreestimaba el Valor Consumo en
+// los meses de Diciembre a Mayo (se verificó y corrigió contra una factura real).
+const MESES_TEMPORADA_JUN_NOV = ["Junio","Julio","Agosto","Septiembre","Octubre","Noviembre"];
+function temporadaDe(mes){
+  return MESES_TEMPORADA_JUN_NOV.includes(mes) ? "jun_nov" : "dic_may";
+}
+const TARIFA_BLOQUES_GENERAL_BASE = [
   {hasta: 50,   tarifa: 0.091},
   {hasta: 100,  tarifa: 0.093},
   {hasta: 150,  tarifa: 0.095},
@@ -959,14 +969,8 @@ const TARIFA_BLOQUES_GENERAL = [
   {hasta: 300,  tarifa: 0.101},
   {hasta: 350,  tarifa: 0.103},
   {hasta: 500,  tarifa: 0.105},
-  {hasta: 700,  tarifa: 0.1285},
-  {hasta: 1000, tarifa: 0.1450},
-  {hasta: 1500, tarifa: 0.1709},
-  {hasta: 2500, tarifa: 0.2752},
-  {hasta: 3500, tarifa: 0.4360},
-  {hasta: Infinity, tarifa: 0.6812},
 ];
-const TARIFA_BLOQUES_GUAYAQUIL = [
+const TARIFA_BLOQUES_GUAYAQUIL_BASE = [
   {hasta: 50,   tarifa: 0.078},
   {hasta: 100,  tarifa: 0.081},
   {hasta: 150,  tarifa: 0.083},
@@ -975,15 +979,23 @@ const TARIFA_BLOQUES_GUAYAQUIL = [
   {hasta: 300,  tarifa: 0.101},
   {hasta: 350,  tarifa: 0.103},
   {hasta: 500,  tarifa: 0.105},
-  {hasta: 700,  tarifa: 0.1285},
-  {hasta: 1000, tarifa: 0.1450},
+];
+// Bloques 501-700 y 701-1000: los únicos que cambian según temporada.
+const TARIFA_BLOQUES_ESTACIONALES = {
+  jun_nov: [ {hasta: 700, tarifa: 0.1285}, {hasta: 1000, tarifa: 0.1450} ],
+  dic_may: [ {hasta: 700, tarifa: 0.1050}, {hasta: 1000, tarifa: 0.1109} ],
+};
+// Bloques por encima de 1000 kWh: iguales todo el año.
+const TARIFA_BLOQUES_ALTOS = [
   {hasta: 1500, tarifa: 0.1709},
   {hasta: 2500, tarifa: 0.2752},
   {hasta: 3500, tarifa: 0.4360},
   {hasta: Infinity, tarifa: 0.6812},
 ];
-function tablaBloquesDe(unidadNegocio){
-  return unidadNegocio === "Guayaquil" ? TARIFA_BLOQUES_GUAYAQUIL : TARIFA_BLOQUES_GENERAL;
+function tablaBloquesDe(unidadNegocio, mes){
+  const base = unidadNegocio === "Guayaquil" ? TARIFA_BLOQUES_GUAYAQUIL_BASE : TARIFA_BLOQUES_GENERAL_BASE;
+  const temporada = TARIFA_BLOQUES_ESTACIONALES[temporadaDe(mes)];
+  return [...base, ...temporada, ...TARIFA_BLOQUES_ALTOS];
 }
 // Calcula el valor por consumo sumando cada bloque a su propia tarifa (progresivo).
 function valorConsumoPorBloques(consumo, tabla){
@@ -1613,7 +1625,7 @@ async function filasFacturacion(year, mes){
   const c = await computeMonth(year, mes);
   const hist = c.hist;
   const subsidioExtra = await loadSubsidioExtra(year, mes);
-  const sim = c.consumoIngresado > 0 ? simulador(c.consumoIngresado, subsidioExtra) : null;
+  const sim = c.consumoIngresado > 0 ? simulador(c.consumoIngresado, subsidioExtra, mes) : null;
   const r2 = n => Math.round(n*100)/100;
   const r4 = n => Math.round(n*10000)/10000;
   const rows = [[]];
@@ -1893,7 +1905,7 @@ async function construirDetalleMes(year, mes){
 
   let total, origen, detalleFactura = "", detalleSimulador = "";
   const subsidioExtra = await loadSubsidioExtra(year, mes);
-  const sim = c.consumoIngresado > 0 ? simulador(c.consumoIngresado, subsidioExtra) : null;
+  const sim = c.consumoIngresado > 0 ? simulador(c.consumoIngresado, subsidioExtra, mes) : null;
   const analisis = analizarMes(c, subsidioExtra);
   let manual = {consumo:null, total:null};
 
@@ -2112,7 +2124,7 @@ async function computeMonth(year, mes){
 
 const DIGNIDAD_KWH = 130; // umbral de la Tarifa de la Dignidad para la región Costa
 const DIGNIDAD_RATE = 0.04; // $/kWh de la Tarifa de la Dignidad (Pliego Tarifario 2026)
-function simulador(consumo, subsidioExtra){
+function simulador(consumo, subsidioExtra, mes){
   const {tarifaProm, subsidioProm, alumbradoProm} = tarifaPromedios();
   if(!consumo || consumo<=0) return null;
   const umbralUN = UMBRALES_SOLIDARIO_POR_UN[UNIDAD_NEGOCIO];
@@ -2124,13 +2136,15 @@ function simulador(consumo, subsidioExtra){
   // El valor del consumo: si hay Unidad de Negocio configurada y el consumo YA superó
   // la Tarifa Dignidad, se calcula con la tabla real de bloques crecientes (cada bloque
   // de kWh a su propia tarifa, como el impuesto a la renta) — en vez del promedio
-  // calibrado con las facturas reales de esta cuenta.
+  // calibrado con las facturas reales de esta cuenta. Los bloques 501-700/701-1000
+  // dependen de la temporada del mes (ver tablaBloquesDe); si no se pasa mes, se asume
+  // la temporada Diciembre-Mayo (la más común/conservadora) como respaldo.
   let valorConsumo, tarifaAplicada;
   if(esDignidad){
     tarifaAplicada = DIGNIDAD_RATE;
     valorConsumo = consumo * DIGNIDAD_RATE;
   } else if(UNIDAD_NEGOCIO){
-    valorConsumo = valorConsumoPorBloques(consumo, tablaBloquesDe(UNIDAD_NEGOCIO));
+    valorConsumo = valorConsumoPorBloques(consumo, tablaBloquesDe(UNIDAD_NEGOCIO, mes));
     tarifaAplicada = valorConsumo / consumo; // tarifa promedio efectiva, para mostrar
   } else {
     tarifaAplicada = tarifaProm;
@@ -2182,7 +2196,7 @@ function analizarMes(c, subsidioExtra){
   const proyeccionConsumo = promedio > 0 ? promedio * diasTotalesPeriodo : 0;
   const {tarifaProm} = tarifaPromedios();
   const costoAcumuladoEnergia = c.consumoIngresado * tarifaProm;
-  const simProyeccion = proyeccionConsumo > 0 ? simulador(proyeccionConsumo, subsidioExtra) : null;
+  const simProyeccion = proyeccionConsumo > 0 ? simulador(proyeccionConsumo, subsidioExtra, c.mes) : null;
   return {
     promedio, n, fechasInusuales, diasTotalesPeriodo, diasTranscurridos,
     proyeccionConsumo, costoAcumuladoEnergia, simProyeccion
@@ -3101,7 +3115,7 @@ async function resumenHTML(year){
     const hasta = c.rows[c.rows.length-1]?.fecha;
     const subsidioExtra = await loadSubsidioExtra(year, mes);
     const consumoReal = c.hist ? DATA[mes].consumo : c.consumoIngresado;
-    const simSiempre = consumoReal > 0 ? simulador(consumoReal, subsidioExtra) : null;
+    const simSiempre = consumoReal > 0 ? simulador(consumoReal, subsidioExtra, mes) : null;
     let totalFactura, origen, estado, realParaComparar = null;
     if(c.hist){
       const real = facturaReal(mes);
@@ -3205,7 +3219,7 @@ async function resumenChart(year){
     labels.push(mesLabel(mes).slice(0,3));
     data.push(consumoReal || 0);
     const subsidioExtra = await loadSubsidioExtra(year, mes);
-    const sim = consumoReal > 0 ? simulador(consumoReal, subsidioExtra) : null;
+    const sim = consumoReal > 0 ? simulador(consumoReal, subsidioExtra, mes) : null;
     let real = null;
     if(c.hist) real = facturaReal(mes).totalFactura;
     else { const manual = await loadFacturaManual(year, mes); if(manual.total!=null) real = manual.total; }
@@ -3370,7 +3384,7 @@ async function buildStatsSections(year, mes){
     ` : ""}`;
   }
 
-  const sim = simulador(c.consumoIngresado, subsidioExtra);
+  const sim = simulador(c.consumoIngresado, subsidioExtra, c.mes);
   let simHTML = `<h3>Simulador con Tarifa Referencial</h3>`;
   simHTML += `
     <label style="font-size:.75rem; color:var(--sub); display:block; margin:2px 0 3px;">Subsidio / compensación extraordinaria del Gobierno este mes ($, se resta del total)</label>
