@@ -1914,7 +1914,7 @@ async function construirReporteMes(year, mes){
         <td>${lectFin!=null?lectFin.toFixed(2):"-"}</td>
         <td>${c.consumoIngresado.toFixed(2)}</td>
         <td>${filled.length}</td>
-        <td>${dias}</td>
+        <td>${c.rows.length}</td>
       </tr>
     </table>`;
 
@@ -2103,7 +2103,7 @@ function analizarMes(c, subsidioExtra){
   const fechasInusuales = (n >= 3)
     ? validDays.filter(r => r.consumo > promedio * UMBRAL).map(r => r.fecha)
     : [];
-  const diasTotalesPeriodo = c.rows.length - 1;
+  const diasTotalesPeriodo = c.rows.length;
   const diasTranscurridos = n;
   const proyeccionConsumo = promedio > 0 ? promedio * diasTotalesPeriodo : 0;
   const {tarifaProm} = tarifaPromedios();
