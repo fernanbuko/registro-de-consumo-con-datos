@@ -2167,6 +2167,31 @@ async function computeMonth(year, mes){
 
 const DIGNIDAD_KWH = 130; // umbral de la Tarifa de la Dignidad para la región Costa
 const DIGNIDAD_RATE = 0.04; // $/kWh de la Tarifa de la Dignidad (Pliego Tarifario 2026)
+// Calcula el Valor Consumo (solo el rubro de energía, sin comercialización ni subsidios)
+// de la misma forma en que lo hace simulador() — bloques reales de ARCONEL si hay
+// Unidad de Negocio configurada, o el promedio calibrado con las 6 facturas reales como
+// respaldo. Se extrajo como función aparte para que cualquier otra pantalla que
+// necesite "cuánto cuesta la energía hasta ahora" (ej. costo acumulado del mes) use
+// exactamente el mismo cálculo que el simulador principal, en vez de quedarse con el
+// promedio simple aunque la cuenta ya tenga su Unidad de Negocio configurada.
+function valorEnergiaPorConsumo(consumo, mes, tarifaProm){
+  if(!consumo || consumo<=0) return {valorConsumo: 0, tarifaAplicada: 0, esDignidad: false};
+  const umbralUN = UMBRALES_SOLIDARIO_POR_UN[UNIDAD_NEGOCIO];
+  const dignidadHasta = umbralUN ? umbralUN.recibeHasta : DIGNIDAD_KWH;
+  const esDignidad = consumo <= dignidadHasta;
+  let valorConsumo, tarifaAplicada;
+  if(esDignidad){
+    tarifaAplicada = DIGNIDAD_RATE;
+    valorConsumo = consumo * DIGNIDAD_RATE;
+  } else if(UNIDAD_NEGOCIO){
+    valorConsumo = valorConsumoPorBloques(consumo, tablaBloquesDe(UNIDAD_NEGOCIO, mes));
+    tarifaAplicada = valorConsumo / consumo;
+  } else {
+    tarifaAplicada = tarifaProm;
+    valorConsumo = consumo * tarifaProm;
+  }
+  return {valorConsumo, tarifaAplicada, esDignidad};
+}
 function simulador(consumo, subsidioExtra, mes){
   const {tarifaProm, subsidioProm, alumbradoFijo, alumbradoTasa} = tarifaPromedios();
   if(!consumo || consumo<=0) return null;
@@ -2182,17 +2207,7 @@ function simulador(consumo, subsidioExtra, mes){
   // calibrado con las facturas reales de esta cuenta. Los bloques 501-700/701-1000
   // dependen de la temporada del mes (ver tablaBloquesDe); si no se pasa mes, se asume
   // la temporada Diciembre-Mayo (la más común/conservadora) como respaldo.
-  let valorConsumo, tarifaAplicada;
-  if(esDignidad){
-    tarifaAplicada = DIGNIDAD_RATE;
-    valorConsumo = consumo * DIGNIDAD_RATE;
-  } else if(UNIDAD_NEGOCIO){
-    valorConsumo = valorConsumoPorBloques(consumo, tablaBloquesDe(UNIDAD_NEGOCIO, mes));
-    tarifaAplicada = valorConsumo / consumo; // tarifa promedio efectiva, para mostrar
-  } else {
-    tarifaAplicada = tarifaProm;
-    valorConsumo = consumo * tarifaProm;
-  }
+  const {valorConsumo, tarifaAplicada} = valorEnergiaPorConsumo(consumo, mes, tarifaProm);
   // El Subsidio Cruzado/Solidario tiene 3 zonas reales (según la Unidad de Negocio):
   // hasta el umbral de Dignidad, se recibe (no paga); entre ese umbral y el umbral de
   // aporte, zona neutral (no recibe ni aporta); por encima del umbral de aporte, se
@@ -2243,7 +2258,10 @@ function analizarMes(c, subsidioExtra){
   const diasTranscurridos = n;
   const proyeccionConsumo = promedio > 0 ? promedio * diasTotalesPeriodo : 0;
   const {tarifaProm} = tarifaPromedios();
-  const costoAcumuladoEnergia = c.consumoIngresado * tarifaProm;
+  // Antes esto siempre usaba el promedio simple de las 6 facturas reales, aunque la
+  // cuenta ya tuviera una Unidad de Negocio configurada (con tabla de bloques real) —
+  // se corrigió para que use exactamente el mismo cálculo que el resto de la app.
+  const costoAcumuladoEnergia = valorEnergiaPorConsumo(c.consumoIngresado, c.mes, tarifaProm).valorConsumo;
   const simProyeccion = proyeccionConsumo > 0 ? simulador(proyeccionConsumo, subsidioExtra, c.mes) : null;
   return {
     promedio, n, fechasInusuales, diasTotalesPeriodo, diasTranscurridos,
