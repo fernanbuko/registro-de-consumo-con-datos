@@ -920,16 +920,29 @@ function aplicarCiudad(){
   }
 }
 
-// ---- Unidad de Negocio de CNEL y el porcentaje del Subsidio Solidario que le
-// corresponde. Es un dato confirmado: 5% para la UN Guayaquil, 10% para el resto del
-// país (así lo indica el propio glosario de CNEL). Este porcentaje se aplica sobre
-// (consumo + comercialización) SOLO para quienes consumen por encima del promedio de
-// su zona — ese umbral de "promedio" no es un dato público único, así que el
-// porcentaje se muestra como referencia informativa en Tarifa Eléctrica.
+// ---- Unidad de Negocio de CNEL y el mecanismo real del Subsidio Cruzado/Solidario,
+// según el Anexo 2 del Pliego Tarifario de ARCONEL (Resolución ARCONEL-022/2024):
+// - Hasta "recibeHasta" kWh: el consumidor RECIBE el subsidio (zona de Tarifa Dignidad).
+// - Entre "recibeHasta" y "aportaDesde": zona neutral, no recibe ni aporta.
+// - Por encima de "aportaDesde": el consumidor APORTA el recargo (pct) sobre
+//   (consumo + comercialización) para financiar el subsidio de los demás.
 const UNIDADES_NEGOCIO_CNEL = [
   "Guayaquil","Guayas Los Ríos","Los Ríos","Manabí","Milagro","Santa Elena",
   "Santo Domingo","Sucumbíos","Bolívar","El Oro","Esmeraldas"
 ];
+const UMBRALES_SOLIDARIO_POR_UN = {
+  "Guayaquil":        {recibeHasta: 130, aportaDesde: 250, pct: 0.05},
+  "Guayas Los Ríos":  {recibeHasta: 130, aportaDesde: 190, pct: 0.10},
+  "Los Ríos":         {recibeHasta: 120, aportaDesde: 130, pct: 0.10},
+  "Manabí":           {recibeHasta: 130, aportaDesde: 150, pct: 0.10},
+  "Milagro":          {recibeHasta: 100, aportaDesde: 130, pct: 0.10},
+  "Santa Elena":      {recibeHasta: 130, aportaDesde: 140, pct: 0.10},
+  "Santo Domingo":    {recibeHasta: 110, aportaDesde: 110, pct: 0.10},
+  "Sucumbíos":        {recibeHasta: 90,  aportaDesde: 120, pct: 0.10},
+  "El Oro":           {recibeHasta: 120, aportaDesde: 130, pct: 0.10},
+  "Esmeraldas":       {recibeHasta: 130, aportaDesde: 140, pct: 0.10},
+  "Bolívar":          {recibeHasta: 50,  aportaDesde: 60,  pct: 0.10},
+};
 let UNIDAD_NEGOCIO = "";
 async function loadUnidadNegocio(){
   let v = await storageGet(`unidad_negocio:${PERFIL_ACTIVO}`);
@@ -940,8 +953,8 @@ async function saveUnidadNegocio(val){
   await storageSet(`unidad_negocio:${PERFIL_ACTIVO}`, UNIDAD_NEGOCIO);
 }
 function porcentajeSubsidioSolidario(){
-  if(!UNIDAD_NEGOCIO) return null;
-  return UNIDAD_NEGOCIO === "Guayaquil" ? 0.05 : 0.10;
+  const umbral = UMBRALES_SOLIDARIO_POR_UN[UNIDAD_NEGOCIO];
+  return umbral ? umbral.pct : null;
 }
 
 // ---- Datos del cliente (con soporte para varios perfiles/cuentas)
@@ -2043,16 +2056,28 @@ const DIGNIDAD_RATE = 0.04; // $/kWh de la Tarifa de la Dignidad (Pliego Tarifar
 function simulador(consumo, subsidioExtra){
   const {tarifaProm, subsidioProm, alumbradoProm} = tarifaPromedios();
   if(!consumo || consumo<=0) return null;
-  const esDignidad = consumo <= DIGNIDAD_KWH;
+  const umbralUN = UMBRALES_SOLIDARIO_POR_UN[UNIDAD_NEGOCIO];
+  // Si se configuró la Unidad de Negocio, se usa su umbral real de Tarifa Dignidad
+  // (Anexo 2 del Pliego Tarifario); si no, se usa el umbral genérico de 130 kWh como
+  // aproximación.
+  const dignidadHasta = umbralUN ? umbralUN.recibeHasta : DIGNIDAD_KWH;
+  const esDignidad = consumo <= dignidadHasta;
   const tarifaAplicada = esDignidad ? DIGNIDAD_RATE : tarifaProm;
   const valorConsumo = consumo*tarifaAplicada;
-  // El Subsidio Cruzado lo pagan los consumos por ENCIMA del umbral de Dignidad
-  // (para financiar el subsidio); quien está dentro del umbral no lo paga.
-  // Si se configuró la Unidad de Negocio, se usa la regla formal de CNEL (5%/10%
-  // sobre consumo+comercialización) en vez del promedio observado en las facturas
-  // reales de esta cuenta.
-  const pctSolidario = porcentajeSubsidioSolidario();
-  const subsidioCruzado = esDignidad ? 0 : (pctSolidario !== null ? (valorConsumo + FIXED.comercial) * pctSolidario : consumo*subsidioProm);
+  // El Subsidio Cruzado/Solidario tiene 3 zonas reales (según la Unidad de Negocio):
+  // hasta el umbral de Dignidad, se recibe (no paga); entre ese umbral y el umbral de
+  // aporte, zona neutral (no recibe ni aporta); por encima del umbral de aporte, se
+  // paga el recargo real de esa Unidad de Negocio sobre (consumo+comercialización).
+  // Sin Unidad de Negocio configurada, se usa el promedio observado en las facturas
+  // reales de esta cuenta como respaldo.
+  let subsidioCruzado;
+  if(esDignidad){
+    subsidioCruzado = 0;
+  } else if(umbralUN){
+    subsidioCruzado = consumo > umbralUN.aportaDesde ? (valorConsumo + FIXED.comercial) * umbralUN.pct : 0;
+  } else {
+    subsidioCruzado = consumo*subsidioProm;
+  }
   const subtotalSE = valorConsumo + FIXED.comercial + subsidioCruzado - FIXED.subsidio_adulto;
   const alumbrado = consumo*alumbradoProm;
   const totalSEAP = subtotalSE + alumbrado;
@@ -3184,11 +3209,11 @@ function tarifaHTML(){
     <div class="kv"><span>I.V.A. aplicable</span><span class="v blue">${FIXED.iva*100}%</span></div>
     ${UNIDAD_NEGOCIO ? `<div class="kv"><span>${LANG==='en'?'Solidarity Subsidy surcharge':'Recargo Subsidio Solidario'} — ${UNIDAD_NEGOCIO}</span><span class="v blue">${(porcentajeSubsidioSolidario()*100).toFixed(0)}%</span></div>
     <div class="note" style="margin-bottom:10px;">${LANG==='en'
-      ? "This percentage is now used by the Simulator (instead of the estimate from your own real bills), applied on (consumption + commercialization) for months over 130 kWh. Note: the formal rule applies above your zone's average consumption, which isn't a public figure — 130 kWh is used here as the closest available threshold."
-      : "Este porcentaje ya lo usa el Simulador (en vez del estimado con tus propias facturas reales), aplicado sobre (consumo + comercialización) en los meses que superan los 130 kWh. Nota: la regla formal aplica sobre el promedio de tu zona, que no es un dato público — se usa 130 kWh aquí como el umbral más cercano disponible."}</div>`
+      ? `Real thresholds for ${UNIDAD_NEGOCIO} (Pliego Tarifario, ARCONEL Annex 2): up to ${UMBRALES_SOLIDARIO_POR_UN[UNIDAD_NEGOCIO].recibeHasta} kWh/month you receive the Dignidad subsidy; between ${UMBRALES_SOLIDARIO_POR_UN[UNIDAD_NEGOCIO].recibeHasta} and ${UMBRALES_SOLIDARIO_POR_UN[UNIDAD_NEGOCIO].aportaDesde} kWh it's a neutral zone (neither benefit nor surcharge); above ${UMBRALES_SOLIDARIO_POR_UN[UNIDAD_NEGOCIO].aportaDesde} kWh you pay this surcharge on (consumption + commercialization). The Simulator already applies this exact rule.`
+      : `Umbrales reales para ${UNIDAD_NEGOCIO} (Pliego Tarifario, Anexo 2 de ARCONEL): hasta ${UMBRALES_SOLIDARIO_POR_UN[UNIDAD_NEGOCIO].recibeHasta} kWh/mes recibes el subsidio de Dignidad; entre ${UMBRALES_SOLIDARIO_POR_UN[UNIDAD_NEGOCIO].recibeHasta} y ${UMBRALES_SOLIDARIO_POR_UN[UNIDAD_NEGOCIO].aportaDesde} kWh es zona neutral (ni beneficio ni recargo); por encima de ${UMBRALES_SOLIDARIO_POR_UN[UNIDAD_NEGOCIO].aportaDesde} kWh pagas este recargo sobre (consumo + comercialización). El Simulador ya aplica esta regla exacta.`}</div>`
     : `<div class="note" style="margin-bottom:10px;">${LANG==='en'
-      ? "Select your CNEL Business Unit in Ajustes → Datos del Cliente to have the Simulator use the formal Solidarity Subsidy surcharge percentage (5% Guayaquil, 10% elsewhere) instead of the estimate from your own real bills."
-      : "Selecciona tu Unidad de Negocio de CNEL en Ajustes → Datos del Cliente para que el Simulador use el porcentaje formal del Subsidio Solidario (5% Guayaquil, 10% el resto del país) en vez del estimado con tus propias facturas reales."}</div>`}
+      ? "Select your CNEL Business Unit in Ajustes → Datos del Cliente to have the Simulator use the exact real Dignidad/Solidarity thresholds for your zone instead of the generic 130 kWh estimate."
+      : "Selecciona tu Unidad de Negocio de CNEL en Ajustes → Datos del Cliente para que el Simulador use los umbrales reales exactos de Dignidad/Solidario de tu zona, en vez del estimado genérico de 130 kWh."}</div>`}
 
     <h3>Histórico real (fuente para calcular promedios)</h3>
     <div style="overflow-x:auto;">
