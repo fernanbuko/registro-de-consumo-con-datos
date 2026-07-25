@@ -2004,24 +2004,30 @@ async function computeMonth(year, mes){
     if(i===0){
       rows[i].consumo = null;
       // El primer día también puede tener su propio consumo calculado, usando el día
-      // justo antes de él — que vive en el mes anterior, ya que este día se comparte
-      // como el límite entre ambos.
-      if(!hist){
-        let entriesMesAnterior = null;
+      // justo antes de él — que vive en el mes anterior (ya sea porque se comparte
+      // como límite entre meses estimados, o porque en los meses con factura real la
+      // lectura final del mes pasado es el punto de partida real de este).
+      let entriesMesAnterior = null, diaAnterior = null, lecturaAnteriorDirecta = null;
+      if(hist){
+        const idxHist = HIST_MESES.indexOf(mes);
+        if(idxHist > 0){
+          const mesAnteriorHist = HIST_MESES[idxHist-1];
+          if(DATA[mesAnteriorHist]) lecturaAnteriorDirecta = DATA[mesAnteriorHist].lect_fin;
+        }
+      } else {
         if(idx > 0){
           const anterior = secuencia[idx-1];
           entriesMesAnterior = await loadEntries(anterior.year, anterior.mes);
+          diaAnterior = addDays(rows[0].fecha, -1);
         } else if(idx === 0 && PERFIL_ACTIVO === 'default'){
           const ultimoHistorico = HIST_MESES[HIST_MESES.length-1];
-          if(DATA[ultimoHistorico]) entriesMesAnterior = await loadEntries(BASE_YEAR, ultimoHistorico);
+          if(DATA[ultimoHistorico]) lecturaAnteriorDirecta = DATA[ultimoHistorico].lect_fin;
         }
-        if(entriesMesAnterior){
-          const diaAnterior = addDays(rows[0].fecha, -1);
-          const lecturaAnterior = entryValor(entriesMesAnterior[diaAnterior]);
-          if(lecturaAnterior !== null && rows[0].lectura !== null){
-            rows[i].consumo = +(rows[0].lectura - lecturaAnterior).toFixed(2);
-          }
-        }
+      }
+      const lecturaAnterior = lecturaAnteriorDirecta !== null ? lecturaAnteriorDirecta
+        : (entriesMesAnterior && diaAnterior ? entryValor(entriesMesAnterior[diaAnterior]) : null);
+      if(lecturaAnterior !== null && rows[0].lectura !== null){
+        rows[i].consumo = +(rows[0].lectura - lecturaAnterior).toFixed(2);
       }
     }
     else if(rows[i].lectura===null || rows[i-1].lectura===null){ rows[i].consumo=null; }
