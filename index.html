@@ -3199,8 +3199,19 @@ async function resumenHTML(year){
   let totalReal = 0;
   let totalDias = 0;
   const comparacion = []; // {mes, real, estimado}
-  for(const mes of MESES){
-    const c = await computeMonth(year, mes);
+  // Antes esto pedía computeMonth/loadSubsidioExtra/loadFacturaManual UNO POR UNO para
+  // cada uno de los 12 meses (en fila, esperando cada consulta antes de pedir la
+  // siguiente) — con cuenta en la nube (Firestore), cada consulta es un viaje de red,
+  // así que 12 meses × varias consultas se sentía como un retraso notable al abrir esta
+  // pantalla. Ahora se piden todas en paralelo de una vez.
+  const [todosC, todosSubsidio, todosManual] = await Promise.all([
+    Promise.all(MESES.map(mes => computeMonth(year, mes))),
+    Promise.all(MESES.map(mes => loadSubsidioExtra(year, mes))),
+    Promise.all(MESES.map(mes => loadFacturaManual(year, mes)))
+  ]);
+  for(let mi=0; mi<MESES.length; mi++){
+    const mes = MESES[mi];
+    const c = todosC[mi];
     const lectIni = c.rows[0]?.lectura;
     const lectFin = c.rows[c.rows.length-1]?.lectura;
     // Antes se usaba rows.length-1, pero desde que el primer día del periodo también
@@ -3210,7 +3221,7 @@ async function resumenHTML(year){
     totalDias += dias;
     const desde = c.rows[0]?.fecha;
     const hasta = c.rows[c.rows.length-1]?.fecha;
-    const subsidioExtra = await loadSubsidioExtra(year, mes);
+    const subsidioExtra = todosSubsidio[mi];
     const consumoReal = c.hist ? DATA[mes].consumo : c.consumoIngresado;
     const simSiempre = consumoReal > 0 ? simulador(consumoReal, subsidioExtra, mes) : null;
     let totalFactura, origen, estado, realParaComparar = null;
@@ -3224,7 +3235,7 @@ async function resumenHTML(year){
       else estado=t('verificar');
       totalReal += totalFactura;
     } else {
-      const manual = await loadFacturaManual(year, mes);
+      const manual = todosManual[mi];
       if(manual.total!==null && manual.total!==undefined){
         totalFactura = manual.total;
         origen = t('real_manual');
@@ -3310,16 +3321,22 @@ async function resumenChart(year){
   destroyChart('resumenChart');
   const labels=[], data=[];
   const compLabels=[], compReal=[], compEst=[];
-  for(const mes of MESES){
-    const c = await computeMonth(year, mes);
+  const [todosC, todosSubsidio, todosManual] = await Promise.all([
+    Promise.all(MESES.map(mes => computeMonth(year, mes))),
+    Promise.all(MESES.map(mes => loadSubsidioExtra(year, mes))),
+    Promise.all(MESES.map(mes => loadFacturaManual(year, mes)))
+  ]);
+  for(let mi=0; mi<MESES.length; mi++){
+    const mes = MESES[mi];
+    const c = todosC[mi];
     const consumoReal = c.hist ? DATA[mes].consumo : c.consumoIngresado;
     labels.push(mesLabel(mes).slice(0,3));
     data.push(consumoReal || 0);
-    const subsidioExtra = await loadSubsidioExtra(year, mes);
+    const subsidioExtra = todosSubsidio[mi];
     const sim = consumoReal > 0 ? simulador(consumoReal, subsidioExtra, mes) : null;
     let real = null;
     if(c.hist) real = facturaReal(mes).totalFactura;
-    else { const manual = await loadFacturaManual(year, mes); if(manual.total!=null) real = manual.total; }
+    else { const manual = todosManual[mi]; if(manual.total!=null) real = manual.total; }
     compLabels.push(mesLabel(mes).slice(0,3));
     compReal.push(real!==null ? +real.toFixed(2) : null);
     compEst.push(sim ? +sim.totalFactura.toFixed(2) : null);
@@ -3349,17 +3366,18 @@ async function resumenChart(year){
     if(yoyCtx && YEARS.length > 1){
       const yoyLabels = MESES.map(m => mesLabel(m).slice(0,3));
       const palette = ['#4f8ff0','#7bd88f','#f0716f','#e8b169','#a78bfa','#38bdf8'];
-      const datasets = [];
-      for(let i=0;i<YEARS.length;i++){
-        const y = YEARS[i];
-        const yData = [];
-        for(const mes of MESES){
-          const cy = await computeMonth(y, mes);
+      const todosPorAnio = await Promise.all(
+        YEARS.map(y => Promise.all(MESES.map(mes => computeMonth(y, mes))))
+      );
+      const datasets = YEARS.map((y, i) => {
+        const cs = todosPorAnio[i];
+        const yData = MESES.map((mes, mi) => {
+          const cy = cs[mi];
           const consumoRealY = cy.hist ? DATA[mes].consumo : cy.consumoIngresado;
-          yData.push(+((consumoRealY)||0).toFixed(1));
-        }
-        datasets.push({label:String(y), data:yData, backgroundColor: palette[i % palette.length]});
-      }
+          return +((consumoRealY)||0).toFixed(1);
+        });
+        return {label:String(y), data:yData, backgroundColor: palette[i % palette.length]};
+      });
       charts['yearOverYearChart'] = new Chart(yoyCtx, {
         type:'bar',
         data:{ labels: yoyLabels, datasets },
