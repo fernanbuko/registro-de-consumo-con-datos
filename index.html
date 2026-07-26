@@ -552,6 +552,43 @@ const diaSemana = iso => {
   return (typeof LANG !== 'undefined' && LANG === 'en') ? DIAS_SEMANA_EN[d.getDay()] : DIAS_SEMANA[d.getDay()];
 };
 // Cada entrada puede ser un número simple (formato antiguo) o un objeto {valor, hora}
+// Modal de confirmación propio de la app, en vez de usar confirm() del navegador.
+// El confirm() nativo SIEMPRE muestra el dominio del sitio ("fernanbuko.github.io
+// dice...") — es una protección del navegador contra phishing y no se puede quitar ni
+// personalizar desde JavaScript por más que se intente. La única forma de que no
+// aparezca ese texto es no usar confirm() en absoluto, así que esta ventana propia
+// reemplaza esos casos con algo que se ve y se siente parte de la app.
+function confirmarModal(mensaje, opciones = {}){
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;';
+    const box = document.createElement('div');
+    box.style.cssText = 'background:var(--card); border:1px solid var(--border); border-radius:var(--radius-lg, 16px); padding:20px; max-width:380px; width:100%; box-shadow:var(--shadow-md, 0 16px 32px -18px rgba(0,0,0,.5));';
+    const p = document.createElement('p');
+    p.textContent = mensaje;
+    p.style.cssText = 'margin:0 0 18px 0; color:var(--text); font-size:.9rem; line-height:1.5;';
+    box.appendChild(p);
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex; gap:8px; justify-content:flex-end;';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = opciones.textoCancelar || (LANG==='en' ? 'Cancel' : 'Cancelar');
+    cancelBtn.style.cssText = 'background:var(--card2); color:var(--text); border:1px solid var(--border);';
+    const okBtn = document.createElement('button');
+    okBtn.textContent = opciones.textoAceptar || (LANG==='en' ? 'Confirm' : 'Aceptar');
+    if(opciones.peligroso){ okBtn.style.background = 'var(--danger)'; okBtn.style.borderColor = 'var(--danger)'; }
+    btnRow.appendChild(cancelBtn);
+    btnRow.appendChild(okBtn);
+    box.appendChild(btnRow);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    function cerrar(resultado){ document.body.removeChild(overlay); resolve(resultado); }
+    cancelBtn.onclick = () => cerrar(false);
+    okBtn.onclick = () => cerrar(true);
+    overlay.onclick = (e) => { if(e.target === overlay) cerrar(false); };
+    okBtn.focus();
+  });
+}
+
 const entryValor = entry => {
   if(entry===undefined || entry===null) return null;
   if(typeof entry === 'object') return (entry.valor===undefined ? null : entry.valor);
@@ -574,11 +611,15 @@ const BASE_YEAR = 2026;
 function getCycleStart(){
   // El perfil "default" es la cuenta real con facturas de Ene-Jun ya cargadas,
   // así que sus meses estimados siguen encadenados desde el fin de Junio real.
-  // Cualquier otro perfil (propiedad nueva) no tiene esas facturas, así que
-  // arranca su propio ciclo desde el 1 de enero del año base.
+  // Cualquier otro perfil (propiedad nueva) no tiene esas facturas, así que arranca su
+  // propio ciclo desde el 1 de enero del primer año que ese perfil tenga guardado — NO
+  // del año base (2026) a la fuerza, porque si el perfil se creó en 2027 o después, su
+  // primer año real es ese, no 2026.
   // NOTA: el ciclo estimado arranca el día SIGUIENTE al corte del mes anterior (no el
   // mismo día) — cada día pertenece a un solo mes, sin compartir el día de corte.
-  return PERFIL_ACTIVO === 'default' ? addDays(DATA['Junio'].hasta, 1) : `${BASE_YEAR}-01-01`;
+  if(PERFIL_ACTIVO === 'default') return addDays(DATA['Junio'].hasta, 1);
+  const primerAnio = Math.min(...YEARS, ANIO_ACTUAL);
+  return `${primerAnio}-01-01`;
 }
 
 function addDays(fecha, n){
@@ -757,8 +798,14 @@ async function clearCutoffOverride(year, mes){
 function futureSequence(){
   const seq = [];
   const esDefault = PERFIL_ACTIVO === 'default';
-  const lastYear = Math.max(BASE_YEAR, ...YEARS) + 1; // +1 año de margen
-  for(let y = BASE_YEAR; y <= lastYear; y++){
+  // Para el perfil "default", la cadena siempre arranca en BASE_YEAR (2026), su año
+  // real. Para cualquier otro perfil, arranca en el primer año que ESE perfil tenga
+  // guardado (que puede ser cualquier año, no necesariamente 2026) — así una cuenta
+  // creada en 2027 (o el año que sea) no aparece con un 2026 vacío antes de su propio
+  // primer año.
+  const primerAnio = esDefault ? BASE_YEAR : Math.min(...YEARS, ANIO_ACTUAL);
+  const lastYear = Math.max(primerAnio, ...YEARS) + 1; // +1 año de margen
+  for(let y = primerAnio; y <= lastYear; y++){
     const startIdx = (esDefault && y===BASE_YEAR) ? 6 : 0; // en 2026 el perfil real arranca en Julio (índice 6)
     for(let mi = startIdx; mi < 12; mi++){
       seq.push({year:y, mes:MESES[mi]});
@@ -828,13 +875,29 @@ async function repararEncadenamientoFuturo(){
 }
 
 // ---- Años disponibles (se guardan para que "Agregar año" persista)
+// Para el perfil "default" (la cuenta real), el primer año SIEMPRE es BASE_YEAR (2026),
+// porque ahí es donde arrancan sus facturas reales. Para cualquier OTRO perfil (una
+// propiedad nueva creada en cualquier año), si todavía no tiene años guardados, el
+// primer año debe ser el año actual real — no 2026 a la fuerza — porque si alguien crea
+// su cuenta en 2027 (o después), no tiene sentido que le aparezca 2026 sin datos.
+const ANIO_ACTUAL = new Date().getFullYear();
+function anioInicialPorDefecto(){
+  return PERFIL_ACTIVO === 'default' ? BASE_YEAR : ANIO_ACTUAL;
+}
+// El año que NO se puede borrar (es el primer año/ancla de este perfil). Para el
+// perfil "default" siempre es BASE_YEAR (2026); para cualquier otro perfil es el año
+// más antiguo que ese perfil realmente tenga guardado — que puede no ser 2026 en
+// absoluto si el perfil se creó en otro año.
+function anioProtegido(){
+  return PERFIL_ACTIVO === 'default' ? BASE_YEAR : Math.min(...YEARS);
+}
 let YEARS = [BASE_YEAR];
 async function loadYears(){
   try{
     let v = await storageGet(`years:${PERFIL_ACTIVO}`);
     if(!v && PERFIL_ACTIVO === 'default'){ v = await storageGet('years'); }
-    YEARS = v ? JSON.parse(v) : [BASE_YEAR];
-  }catch(e){ YEARS = [BASE_YEAR]; }
+    YEARS = v ? JSON.parse(v) : [anioInicialPorDefecto()];
+  }catch(e){ YEARS = [anioInicialPorDefecto()]; }
 }
 async function saveYears(){
   await storageSet(`years:${PERFIL_ACTIVO}`, JSON.stringify(YEARS));
@@ -1146,7 +1209,7 @@ async function recargarDatosPerfil(irAResumen = true){
   await loadBomberosManual();
   await loadUnidadNegocio();
   buildFutureRanges();
-  currentYear = YEARS[0] || BASE_YEAR;
+  currentYear = YEARS[0] || anioInicialPorDefecto();
   if(irAResumen) currentTab = "Resumen Anual";
 }
 async function nuevoPerfil(){
@@ -1166,11 +1229,12 @@ async function cambiarPerfilActivo(id){
   await recargarDatosPerfil();
 }
 async function borrarDatosDePerfil(id){
-  let yearsDelPerfil = [BASE_YEAR];
+  const anioFallback = id === 'default' ? BASE_YEAR : ANIO_ACTUAL;
+  let yearsDelPerfil = [anioFallback];
   try{
     let v = await storageGet(`years:${id}`);
     if(!v && id === 'default') v = await storageGet('years');
-    yearsDelPerfil = v ? JSON.parse(v) : [BASE_YEAR];
+    yearsDelPerfil = v ? JSON.parse(v) : [anioFallback];
   }catch(e){}
   const claves = [];
   for(const year of yearsDelPerfil){
@@ -1303,12 +1367,12 @@ async function iniciarFlujoCompartir(){
   const msgBorrar = LANG==='en'
     ? "To share this app safely, the data saved on this device needs to be wiped first (every profile, years, readings, invoices). Continue?"
     : "Para compartir la app de forma segura, primero hay que borrar los datos guardados en este dispositivo (todos los perfiles, años, lecturas y facturas). ¿Deseas continuar?";
-  if(!confirm(msgBorrar)) return;
+  if(!(await confirmarModal(msgBorrar, {peligroso:true}))) return;
 
   const msgExportar = LANG==='en'
     ? "Do you want to export a backup (JSON) of your data before wiping and sharing? If you say No, it will just skip the backup and continue wiping + sharing anyway."
     : "¿Quieres exportar un respaldo (JSON) de tus datos antes de borrar y compartir? Si dices No, simplemente se salta el respaldo y sigue con borrar + compartir de todas formas.";
-  if(confirm(msgExportar)){
+  if(await confirmarModal(msgExportar)){
     await exportarJSON();
     await new Promise(r=>setTimeout(r, 400)); // dar tiempo a que la descarga del respaldo se dispare bien
   }
@@ -1529,9 +1593,9 @@ function cerrarFotoModal(){
 async function borrarFotoDelModal(){
   if(!FOTO_MODAL_CONTEXTO) return;
   const {year, mes, fecha, btn} = FOTO_MODAL_CONTEXTO;
-  if(!confirm(LANG==='en'
+  if(!(await confirmarModal(LANG==='en'
     ? 'Remove this photo from the app? (It stays stored on Cloudinary, but this app will no longer show or link to it.)'
-    : '¿Quitar esta foto de la app? (Sigue guardada en Cloudinary, pero la app ya no la va a mostrar ni a enlazar.)')) return;
+    : '¿Quitar esta foto de la app? (Sigue guardada en Cloudinary, pero la app ya no la va a mostrar ni a enlazar.)', {peligroso:true}))) return;
   let entries = await loadEntries(year, mes);
   if(entries[fecha]) delete entries[fecha].foto;
   await saveEntries(year, mes, entries);
@@ -1622,7 +1686,7 @@ async function perfilTieneDatos(perfilId){
   const p = PERFILES.find(x=>x.id===perfilId);
   if(p && (p.nombre || p.cedula || p.direccion || p.cuenta || p.medidor)) return true;
 
-  let years = [BASE_YEAR];
+  let years = [perfilId === 'default' ? BASE_YEAR : ANIO_ACTUAL];
   try{
     let v = await storageGet(`years:${perfilId}`);
     if(!v && perfilId === 'default') v = await storageGet('years');
@@ -1813,8 +1877,8 @@ async function importarJSON(file){
       alert("Este archivo no parece un respaldo válido de esta app.");
       return;
     }
-    if(!confirm("Esto reemplazará tus datos actuales con los del respaldo. ¿Continuar?")) return;
-    YEARS = data.years && data.years.length ? data.years : [BASE_YEAR];
+    if(!(await confirmarModal("Esto reemplazará tus datos actuales con los del respaldo. ¿Continuar?", {peligroso:true}))) return;
+    YEARS = data.years && data.years.length ? data.years : [anioInicialPorDefecto()];
     await saveYears();
     FUTURE_OVERRIDES = data.future_overrides || {};
     await saveOverrides();
@@ -2360,7 +2424,7 @@ function renderYearTabs(){
     if(year===currentYear) b.classList.add('active');
     b.onclick = ()=>{ navegarA(currentTab, year); };
     wrap.appendChild(b);
-    if(year !== BASE_YEAR){
+    if(year !== anioProtegido()){
       const del = document.createElement('button');
       del.textContent = "✕";
       del.className = "delbtn";
@@ -2378,7 +2442,7 @@ function renderYearTabs(){
 }
 
 async function deleteYear(year){
-  if(!confirm(`¿Borrar todo el año ${year}? Se perderán todas las lecturas ingresadas en sus 12 meses. Esta acción no se puede deshacer.`)) return;
+  if(!(await confirmarModal(`¿Borrar todo el año ${year}? Se perderán todas las lecturas ingresadas en sus 12 meses. Esta acción no se puede deshacer.`, {peligroso:true}))) return;
   const claves = [];
   for(const mes of MESES){
     claves.push(`lecturas:${PERFIL_ACTIVO}:${year}:${mes}`);
@@ -2393,7 +2457,7 @@ async function deleteYear(year){
   YEARS = YEARS.filter(y2 => y2 !== year);
   await saveYears();
   buildFutureRanges();
-  if(currentYear === year){ currentYear = BASE_YEAR; currentTab = "Resumen Anual"; }
+  if(currentYear === year){ currentYear = anioProtegido(); currentTab = "Resumen Anual"; }
   renderYearTabs(); renderSpecialTabs(); renderTabs(); renderContent();
   if(document.getElementById('drawerBody')){ drawerLevel = 'root'; renderDrawer(); }
 }
@@ -2587,13 +2651,13 @@ function renderDrawer(){
       del.style.cssText = 'padding:6px 10px; color:var(--danger); cursor:pointer; font-size:.8rem;';
       del.onclick = async (e)=>{
         e.stopPropagation();
-        if(!confirm(LANG==='en' ? `Delete profile "${landingProfileLabel(p)}"? This cannot be undone.` : `¿Borrar el perfil "${landingProfileLabel(p)}"? Esta acción no se puede deshacer.`)) return;
+        if(!(await confirmarModal(LANG==='en' ? `Delete profile "${landingProfileLabel(p)}"? This cannot be undone.` : `¿Borrar el perfil "${landingProfileLabel(p)}"? Esta acción no se puede deshacer.`, {peligroso:true}))) return;
 
         if(await perfilTieneDatos(p.id)){
           const msgExportar = LANG==='en'
             ? `Do you want to export a backup (JSON) of "${landingProfileLabel(p)}" before deleting it?`
             : `¿Quieres exportar un respaldo (JSON) de "${landingProfileLabel(p)}" antes de borrarlo?`;
-          if(confirm(msgExportar)){
+          if(await confirmarModal(msgExportar)){
             await exportarJSONDePerfil(p.id);
             await new Promise(r=>setTimeout(r, 400));
           }
@@ -2628,7 +2692,7 @@ function renderDrawer(){
       }, {active: currentYear===year});
       main.style.flex = '1';
       row.appendChild(main);
-      if(year !== BASE_YEAR){
+      if(year !== anioProtegido()){
         const del = document.createElement('span');
         del.textContent = '✕';
         del.title = LANG==='en' ? `Delete year ${year}` : `Borrar el año ${year}`;
@@ -2961,13 +3025,13 @@ function attachAjustesEvents(){
   const borrarPerfilBtn = document.getElementById('borrarPerfilBtn');
   if(borrarPerfilBtn){
     borrarPerfilBtn.addEventListener('click', async ()=>{
-      if(!confirm(LANG==='en' ? 'Delete this profile? This cannot be undone.' : '¿Borrar este perfil? Esta acción no se puede deshacer.')) return;
+      if(!(await confirmarModal(LANG==='en' ? 'Delete this profile? This cannot be undone.' : '¿Borrar este perfil? Esta acción no se puede deshacer.', {peligroso:true}))) return;
 
       if(await perfilTieneDatos(PERFIL_ACTIVO)){
         const msgExportar = LANG==='en'
           ? 'Do you want to export a backup (JSON) of this profile before deleting it?'
           : '¿Quieres exportar un respaldo (JSON) de este perfil antes de borrarlo?';
-        if(confirm(msgExportar)){
+        if(await confirmarModal(msgExportar)){
           await exportarJSON();
           await new Promise(r=>setTimeout(r, 400));
         }
@@ -2983,9 +3047,9 @@ function attachAjustesEvents(){
       const msg1 = LANG==='en'
         ? 'This will permanently delete EVERY profile and all their data (years, readings, invoices, client info). This cannot be undone. Continue?'
         : 'Esto borrará PERMANENTEMENTE todos los perfiles y todos sus datos (años, lecturas, facturas, datos del cliente). No se puede deshacer. ¿Continuar?';
-      if(!confirm(msg1)) return;
+      if(!(await confirmarModal(msg1, {peligroso:true}))) return;
       const msg2 = LANG==='en' ? 'Are you sure? This is your last chance to cancel.' : '¿Estás seguro? Esta es tu última oportunidad para cancelar.';
-      if(!confirm(msg2)) return;
+      if(!(await confirmarModal(msg2, {peligroso:true}))) return;
       await borrarTodoParaCompartir();
       volverAPantallaDeInicio();
     });
@@ -3192,8 +3256,6 @@ async function resumenHTML(year){
   // algún mes con un ajuste guardado que ya no coincide con el corte del mes anterior.
   await repararEncadenamientoFuturo();
   const esDefault = PERFIL_ACTIVO === 'default';
-  const facturados = (esDefault && year===BASE_YEAR) ? MESES.filter(m => !!DATA[m]) : [];
-  const pendientes = MESES.filter(m => !(esDefault && year===BASE_YEAR && DATA[m]));
   let rows = "";
   let diasRows = "";
   let totalReal = 0;
@@ -3209,6 +3271,18 @@ async function resumenHTML(year){
     Promise.all(MESES.map(mes => loadSubsidioExtra(year, mes))),
     Promise.all(MESES.map(mes => loadFacturaManual(year, mes)))
   ]);
+  // Un mes cuenta como "con factura real" si es uno de los 6 históricos (Ene-Jun con
+  // factura ya cargada de fábrica) O si le ingresaste tú mismo una factura real manual
+  // (Ajustes → Factura Manual) — antes esto solo miraba los históricos, así que un mes
+  // como Julio con su factura de CNEL ya ingresada a mano seguía apareciendo como
+  // "sin facturar (estimado)" aunque ya tuviera su dato real.
+  const tieneManual = mes => {
+    const mi = MESES.indexOf(mes);
+    const manual = todosManual[mi];
+    return manual && manual.total !== null && manual.total !== undefined;
+  };
+  const facturados = MESES.filter(m => (esDefault && year===BASE_YEAR && !!DATA[m]) || tieneManual(m));
+  const pendientes = MESES.filter(m => !((esDefault && year===BASE_YEAR && !!DATA[m]) || tieneManual(m)));
   for(let mi=0; mi<MESES.length; mi++){
     const mes = MESES[mi];
     const c = todosC[mi];
@@ -3889,7 +3963,7 @@ function attachMonthEvents(year, mes){
   const clearBtn = document.getElementById('clearMonthBtn');
   if(clearBtn){
     clearBtn.addEventListener('click', async ()=>{
-      if(!confirm(`¿Borrar todas las lecturas ingresadas en ${mesLabel(mes)} ${year}? Esta acción no se puede deshacer.`)) return;
+      if(!(await confirmarModal(`¿Borrar todas las lecturas ingresadas en ${mesLabel(mes)} ${year}? Esta acción no se puede deshacer.`, {peligroso:true}))) return;
       await storageDelete(`lecturas:${PERFIL_ACTIVO}:${year}:${mes}`);
       await storageDelete(`factura_manual:${PERFIL_ACTIVO}:${year}:${mes}`);
       await storageDelete(`subsidio_extra:${PERFIL_ACTIVO}:${year}:${mes}`);
@@ -3925,7 +3999,7 @@ function attachMonthEvents(year, mes){
   const restaurarBtn = document.getElementById('restaurarDiasBtn');
   if(restaurarBtn){
     restaurarBtn.addEventListener('click', async ()=>{
-      if(!confirm('¿Restaurar el estimado de 30 días para este mes? Los meses siguientes también se recalcularán.')) return;
+      if(!(await confirmarModal('¿Restaurar el estimado de 30 días para este mes? Los meses siguientes también se recalcularán.'))) return;
       const textoOriginal = restaurarBtn.textContent;
       restaurarBtn.disabled = true;
       restaurarBtn.textContent = 'Guardando…';
@@ -4030,7 +4104,7 @@ function attachFacturaFotoCardEvents(year, mes){
 
   if(borrarBtn){
     borrarBtn.addEventListener('click', async ()=>{
-      if(!confirm(LANG==='en' ? 'Remove this invoice file?' : '¿Quitar este archivo de factura?')) return;
+      if(!(await confirmarModal(LANG==='en' ? 'Remove this invoice file?' : '¿Quitar este archivo de factura?', {peligroso:true}))) return;
       await saveFacturaFoto(year, mes, null);
       const cardActual = document.getElementById('facturaFotoCard');
       cardActual.innerHTML = facturaFotoCardHTML(null);
@@ -4112,7 +4186,7 @@ function mostrarPantallaBienvenida(){
       <div class="chev">›</div>`;
     card.onclick = async ()=>{
       if(PERFIL_ACTIVO !== p.id){ await cambiarPerfilActivo(p.id); }
-      else { await loadYears(); await loadOverrides(); buildFutureRanges(); currentYear = YEARS[0]||BASE_YEAR; currentTab = "Resumen Anual"; }
+      else { await loadYears(); await loadOverrides(); buildFutureRanges(); currentYear = YEARS[0]||anioInicialPorDefecto(); currentTab = "Resumen Anual"; }
       entrarAlApp();
     };
     const delBtn = card.querySelector('.landing-del-btn');
@@ -4121,13 +4195,13 @@ function mostrarPantallaBienvenida(){
       const msg = LANG==='en'
         ? `Delete profile "${landingProfileLabel(p)}"? This cannot be undone.`
         : `¿Borrar el perfil "${landingProfileLabel(p)}"? Esta acción no se puede deshacer.`;
-      if(!confirm(msg)) return;
+      if(!(await confirmarModal(msg, {peligroso:true}))) return;
 
       if(await perfilTieneDatos(p.id)){
         const msgExportar = LANG==='en'
           ? `Do you want to export a backup (JSON) of "${landingProfileLabel(p)}" before deleting it?`
           : `¿Quieres exportar un respaldo (JSON) de "${landingProfileLabel(p)}" antes de borrarlo?`;
-        if(confirm(msgExportar)){
+        if(await confirmarModal(msgExportar)){
           await exportarJSONDePerfil(p.id);
           await new Promise(r=>setTimeout(r, 400)); // dar tiempo a que la descarga del respaldo se dispare bien
         }
@@ -4251,7 +4325,7 @@ async function iniciarModoInvitado(){
     await saveEntries(info.year, info.mes, entries);
   }
 
-  currentYear = YEARS[0] || BASE_YEAR;
+  currentYear = YEARS[0] || anioInicialPorDefecto();
   currentTab = "Resumen Anual";
   entrarAlApp();
 }
@@ -4263,7 +4337,7 @@ function salirDeModoInvitado(){
 }
 
 async function cerrarSesion(){
-  if(!confirm(LANG==='en' ? 'Sign out?' : '¿Cerrar sesión?')) return;
+  if(!(await confirmarModal(LANG==='en' ? 'Sign out?' : '¿Cerrar sesión?'))) return;
   try{ await firebase.auth().signOut(); }catch(e){}
   FIREBASE_UID = null;
   FIREBASE_DATOS = {};
