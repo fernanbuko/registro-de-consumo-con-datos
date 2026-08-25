@@ -1244,6 +1244,7 @@ async function borrarDatosDePerfil(id){
       claves.push(`factura_foto:${id}:${year}:${mes}`);
       claves.push(`subsidio_extra:${id}:${year}:${mes}`);
       claves.push(`meta_ahorro:${id}:${year}:${mes}`);
+      claves.push(`lectura_simple:${id}:${year}:${mes}`);
     }
   }
   claves.push(`years:${id}`, `future_overrides:${id}`, `es_tercera_edad:${id}`, `ciudad:${id}`, `bomberos_manual:${id}`);
@@ -1675,6 +1676,18 @@ async function loadMeta(year, mes){
 }
 async function saveMeta(year, mes, val){
   await storageSet(`meta_ahorro:${PERFIL_ACTIVO}:${year}:${mes}`, String(val));
+}
+
+// "Modo simple": para quien no quiere anotar la lectura de todos los días, permite
+// ingresar solo la lectura inicial y la final del mes y con eso calcular el consumo y el
+// valor estimado a pagar. Se guarda completamente aparte de "lecturas:..." (día a día),
+// así que activar o usar este modo NUNCA borra ni toca las lecturas diarias ya guardadas.
+async function loadLecturaSimple(year, mes){
+  const v = await storageGet(`lectura_simple:${PERFIL_ACTIVO}:${year}:${mes}`);
+  return v ? JSON.parse(v) : {ini:null, fin:null};
+}
+async function saveLecturaSimple(year, mes, obj){
+  await storageSet(`lectura_simple:${PERFIL_ACTIVO}:${year}:${mes}`, JSON.stringify(obj));
 }
 
 // ---- Respaldo: Exportar / Importar JSON (datos exactos, reimportables)
@@ -2450,6 +2463,7 @@ async function deleteYear(year){
     claves.push(`factura_foto:${PERFIL_ACTIVO}:${year}:${mes}`);
     claves.push(`subsidio_extra:${PERFIL_ACTIVO}:${year}:${mes}`);
     claves.push(`meta_ahorro:${PERFIL_ACTIVO}:${year}:${mes}`);
+    claves.push(`lectura_simple:${PERFIL_ACTIVO}:${year}:${mes}`);
     delete FUTURE_OVERRIDES[`${year}:${mes}`];
   }
   await storageDeleteMuchos(claves);
@@ -3521,6 +3535,7 @@ async function buildStatsSections(year, mes){
   const manual = hist ? {consumo:null,total:null} : await loadFacturaManual(year, mes);
   const subsidioExtra = await loadSubsidioExtra(year, mes);
   const meta = await loadMeta(year, mes);
+  const lecturaSimple = hist ? {ini:null, fin:null} : await loadLecturaSimple(year, mes);
   const analisis = analizarMes(c, subsidioExtra);
   ULTIMO_ANALISIS_MES = analisis;
   const comparacionMes = await compararConMesAnterior(year, mes, analisis.diasTranscurridos);
@@ -3543,6 +3558,44 @@ async function buildStatsSections(year, mes){
     estado = {cls:"pend", txt: c.consumoIngresado>0 ? "Sin factura real todavía — acumulando lecturas" : "Ingresa tus lecturas diarias"};
   }
   verifHTML += `<div class="estado ${estado.cls}">${estado.txt}</div>`;
+
+  // Modo simple: para quien no quiere anotar la lectura de todos los días, permite
+  // ingresar solo la lectura inicial y la final del mes y con eso calcular el consumo y
+  // el valor estimado a pagar (usando el mismo Simulador que el resto de la app). Se
+  // guarda por separado de las lecturas día a día, así que usar este modo nunca borra ni
+  // reemplaza los datos diarios ya guardados (si los hay, se siguen viendo intactos en
+  // la tabla de "Lecturas diarias" de más abajo).
+  let simpleHTML = "";
+  if(!hist){
+    const iniVal = lecturaSimple.ini ?? '';
+    const finVal = lecturaSimple.fin ?? '';
+    const tieneSimple = lecturaSimple.ini!==null && lecturaSimple.ini!==undefined && lecturaSimple.fin!==null && lecturaSimple.fin!==undefined;
+    simpleHTML = `
+    <div class="note" style="margin-top:0;">¿No quieres anotar la lectura todos los días? Aquí puedes poner solo la lectura inicial y la final del mes, y la app calcula el consumo y el valor estimado a pagar. Esto no borra ni afecta las lecturas día a día que ya tengas guardadas.</div>
+    <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin:10px 0;">
+      <div>
+        <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">Lectura Inicial (kWh)</label>
+        <input type="number" step="0.01" id="simpleLectIniInput" value="${iniVal}" placeholder="Ej: 12688" style="width:140px;">
+      </div>
+      <div>
+        <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">Lectura Final (kWh)</label>
+        <input type="number" step="0.01" id="simpleLectFinInput" value="${finVal}" placeholder="Ej: 13570" style="width:140px;">
+      </div>
+      <button id="calcularSimpleBtn" style="width:auto; padding:8px 14px;">Calcular valor a pagar</button>
+      ${tieneSimple ? `<button id="borrarSimpleBtn" style="width:auto; padding:8px 14px; background:var(--card2); color:var(--danger); border:1px solid var(--border);">🗑️ Borrar estos datos</button>` : ""}
+    </div>
+    <div id="simpleResultado">${(()=>{
+      if(!tieneSimple) return "";
+      const consumoSimple = +(lecturaSimple.fin - lecturaSimple.ini).toFixed(2);
+      if(consumoSimple <= 0) return `<div class="note" style="color:var(--danger);">La lectura final debe ser mayor a la inicial.</div>`;
+      const simSimple = simulador(consumoSimple, subsidioExtra, c.mes);
+      return `
+      <div class="kv"><span>Consumo (Lectura Final - Inicial)</span><span class="v green">${kwh(consumoSimple)}</span></div>
+      <div class="kv totalrow"><span>Valor estimado a pagar</span><span class="v">${simSimple ? money(simSimple.totalFactura) : "-"}</span></div>
+      `;
+    })()}</div>
+    `;
+  }
 
   let realHTML = "";
   if(hist){
@@ -3645,7 +3698,7 @@ async function buildStatsSections(year, mes){
   const calendarHTML = buildCalendarHTML(c, analisis);
 
   const facturaFoto = await loadFacturaFoto(year, mes);
-  return {c, hist, manual, subsidioExtra, meta, analisis, comparacionMes, tieneFacturaManual, verifHTML, realHTML, simHTML, proyeccionHTML, hoy, faltaHoy, faltaHoyHTML, calendarHTML, facturaFoto};
+  return {c, hist, manual, subsidioExtra, meta, lecturaSimple, analisis, comparacionMes, tieneFacturaManual, verifHTML, realHTML, simHTML, simpleHTML, proyeccionHTML, hoy, faltaHoy, faltaHoyHTML, calendarHTML, facturaFoto};
 }
 
 // Vuelve a calcular y refrescar SOLO las tarjetas de Verificación, Facturación/Simulador
@@ -3659,7 +3712,8 @@ async function actualizarStatsEnVivo(year, mes){
   const diasCalcStat = document.getElementById('diasCalcStat');
   const calendarCard = document.getElementById('calendarCard');
   const faltaHoyBanner = document.getElementById('faltaHoyBanner');
-  if(!verifCard && !realCard && !simCard && !proyeccionCard && !calendarCard && !faltaHoyBanner) return; // no estamos viendo este mes
+  const simpleCard = document.getElementById('simpleCard');
+  if(!verifCard && !realCard && !simCard && !proyeccionCard && !calendarCard && !faltaHoyBanner && !simpleCard) return; // no estamos viendo este mes
 
   const s = await buildStatsSections(year, mes);
   if(verifCard) verifCard.innerHTML = s.verifHTML;
@@ -3669,6 +3723,7 @@ async function actualizarStatsEnVivo(year, mes){
   if(diasCalcStat) diasCalcStat.textContent = `${s.c.rows.filter(r=>r.consumo!==null).length} / ${s.c.rows.length}`;
   if(calendarCard) calendarCard.innerHTML = s.calendarHTML;
   if(faltaHoyBanner) faltaHoyBanner.innerHTML = s.faltaHoyHTML;
+  if(simpleCard) simpleCard.innerHTML = s.simpleHTML;
 
   attachStatsCardEvents(year, mes);
 }
@@ -3696,6 +3751,25 @@ function attachStatsCardEvents(year, mes){
     metaBtn.addEventListener('click', async ()=>{
       const val = parseFloat(document.getElementById('metaInput').value);
       await saveMeta(year, mes, isNaN(val)?null:val);
+      await actualizarStatsEnVivo(year, mes);
+    });
+  }
+  const calcularSimpleBtn = document.getElementById('calcularSimpleBtn');
+  if(calcularSimpleBtn){
+    calcularSimpleBtn.addEventListener('click', async ()=>{
+      const ini = parseFloat(document.getElementById('simpleLectIniInput').value);
+      const fin = parseFloat(document.getElementById('simpleLectFinInput').value);
+      if(isNaN(ini) || isNaN(fin)){ alert('Ingresa la lectura inicial y la final.'); return; }
+      if(fin <= ini){ alert('La lectura final debe ser mayor a la inicial.'); return; }
+      await saveLecturaSimple(year, mes, {ini, fin});
+      await actualizarStatsEnVivo(year, mes);
+    });
+  }
+  const borrarSimpleBtn = document.getElementById('borrarSimpleBtn');
+  if(borrarSimpleBtn){
+    borrarSimpleBtn.addEventListener('click', async ()=>{
+      if(!(await confirmarModal('¿Borrar la lectura inicial y final del Modo Simple de este mes? Esto no afecta tus lecturas día a día.', {peligroso:true}))) return;
+      await saveLecturaSimple(year, mes, {ini:null, fin:null});
       await actualizarStatsEnVivo(year, mes);
     });
   }
@@ -3745,6 +3819,12 @@ async function monthHTML(year, mes){
       <button id="clearMonthBtn" style="width:auto; padding:6px 12px; font-size:.72rem; background:var(--card2); color:var(--danger); border:1px solid var(--border);">${t('borrar_mes')}</button>
     </div>
     <div id="faltaHoyBanner">${s.faltaHoyHTML}</div>
+    ${!hist ? `
+    <div class="card" style="margin-top:14px; background:var(--card2);">
+      <h2 style="font-size:.92rem;">⚡ Modo Simple (solo lectura inicial y final)</h2>
+      <div id="simpleCard">${s.simpleHTML}</div>
+    </div>
+    ` : ""}
     ${!hist ? `
     <div class="note" style="margin:6px 0 10px;">Si tu distribuidora factura este mes con fechas distintas a las estimadas, ajusta aquí el inicio y/o el fin del periodo. Los meses siguientes se recalculan solos a partir de la fecha de corte.</div>
     <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:14px;">
@@ -3968,6 +4048,7 @@ function attachMonthEvents(year, mes){
       await storageDelete(`factura_manual:${PERFIL_ACTIVO}:${year}:${mes}`);
       await storageDelete(`subsidio_extra:${PERFIL_ACTIVO}:${year}:${mes}`);
       await storageDelete(`meta_ahorro:${PERFIL_ACTIVO}:${year}:${mes}`);
+      await storageDelete(`lectura_simple:${PERFIL_ACTIVO}:${year}:${mes}`);
       renderContent();
     });
   }
