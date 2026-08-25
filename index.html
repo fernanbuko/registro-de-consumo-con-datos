@@ -1535,6 +1535,33 @@ function carpetaCloudinaryDeEsteUsuario(){
   return `${CLOUDINARY_APP_NOMBRE}/${usuario}_${nombre}`;
 }
 
+// Borrar un archivo de Cloudinary de verdad requiere la clave secreta de la
+// cuenta, que nunca debe estar en el código del navegador (cualquiera podría
+// verla y borrar o cambiar cualquier archivo). Por eso esto no borra nada
+// directo: deja una "solicitud" guardada en usuarios/{uid}/cloudinariaPendientes,
+// y el robot de GitHub Actions (robot/borrar-cloudinary.js, que sí corre con
+// esa clave secreta de forma segura) la procesa en su próxima corrida. Sin
+// cuenta iniciada no hay dónde guardar la solicitud, así que no hace nada
+// (igual que el resto de la sincronización en la nube, que tampoco aplica
+// en modo sin cuenta).
+async function marcarCloudinariaParaBorrar(url){
+  if(!url || !url.startsWith('http') || !FIREBASE_UID) return;
+  try{
+    await firebase.firestore().collection('usuarios').doc(FIREBASE_UID)
+      .collection('cloudinariaPendientes').add({url, creadoEn: Date.now()});
+  }catch(e){ console.error('No se pudo encolar el borrado en Cloudinary:', e); }
+}
+// Se usa solo al eliminar la cuenta por completo (ver borrarCuenta): pide
+// al robot que borre TODAS las carpetas de Cloudinary de este usuario
+// (puede tener varios perfiles/propiedades, cada uno en su propia carpeta).
+async function marcarCuentaCloudinariaParaBorrar(){
+  if(!FIREBASE_UID) return;
+  try{
+    await firebase.firestore().collection('usuarios').doc(FIREBASE_UID)
+      .collection('cloudinariaPendientes').add({borrarCuenta: true, creadoEn: Date.now()});
+  }catch(e){ console.error('No se pudo encolar el borrado de Cloudinary de la cuenta:', e); }
+}
+
 // Obtiene la hora en la que se tomó la foto, a partir de la fecha de modificación del
 // propio archivo (en la mayoría de celulares, una foto recién tomada con la cámara
 // trae esa fecha puesta con el momento exacto de la captura).
@@ -1595,10 +1622,13 @@ async function borrarFotoDelModal(){
   if(!FOTO_MODAL_CONTEXTO) return;
   const {year, mes, fecha, btn} = FOTO_MODAL_CONTEXTO;
   if(!(await confirmarModal(LANG==='en'
-    ? 'Remove this photo from the app? (It stays stored on Cloudinary, but this app will no longer show or link to it.)'
-    : '¿Quitar esta foto de la app? (Sigue guardada en Cloudinary, pero la app ya no la va a mostrar ni a enlazar.)', {peligroso:true}))) return;
+    ? 'Remove this photo? This also deletes it from Cloudinary storage.'
+    : '¿Quitar esta foto? Esto también la borra del almacenamiento en Cloudinary.', {peligroso:true}))) return;
   let entries = await loadEntries(year, mes);
-  if(entries[fecha]) delete entries[fecha].foto;
+  if(entries[fecha]){
+    marcarCloudinariaParaBorrar(entries[fecha].foto);
+    delete entries[fecha].foto;
+  }
   await saveEntries(year, mes, entries);
   if(btn){
     btn.textContent = '📷';
@@ -4284,7 +4314,9 @@ function attachFacturaFotoCardEvents(year, mes){
 
   if(borrarBtn){
     borrarBtn.addEventListener('click', async ()=>{
-      if(!(await confirmarModal(LANG==='en' ? 'Remove this invoice file?' : '¿Quitar este archivo de factura?', {peligroso:true}))) return;
+      if(!(await confirmarModal(LANG==='en' ? 'Remove this invoice file? This also deletes it from Cloudinary storage.' : '¿Quitar este archivo de factura? Esto también lo borra del almacenamiento en Cloudinary.', {peligroso:true}))) return;
+      const facturaActual = await loadFacturaFoto(year, mes);
+      if(facturaActual) marcarCloudinariaParaBorrar(facturaActual.url);
       await saveFacturaFoto(year, mes, null);
       const cardActual = document.getElementById('facturaFotoCard');
       cardActual.innerHTML = facturaFotoCardHTML(null);
@@ -4538,6 +4570,10 @@ async function borrarCuenta(){
   if(escrito !== palabra) return;
 
   try{
+    // Deja encolado el borrado de TODAS las carpetas de Cloudinary de este
+    // usuario (puede tener varios perfiles/propiedades) ANTES de borrar
+    // nada más — el robot lo procesa en su próxima corrida.
+    try{ await marcarCuentaCloudinariaParaBorrar(); }catch(e){ /* no debe bloquear el borrado del resto de la cuenta */ }
     try{ await firebase.firestore().collection('usuarios').doc(FIREBASE_UID).delete(); }catch(e){ /* si falla, se sigue intentando borrar la cuenta igual */ }
     await firebase.auth().currentUser.delete();
     alert(LANG==='en' ? 'Your account and data were deleted.' : 'Tu cuenta y tus datos fueron borrados.');
