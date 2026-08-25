@@ -3637,12 +3637,12 @@ async function buildStatsSections(year, mes){
     <div class="note" style="margin-top:0;">¿No quieres anotar la lectura todos los días? Aquí puedes poner solo la lectura anterior y la actual del mes (tal como aparecen en tu factura), y la app calcula el consumo y el valor estimado a pagar. Esto no borra ni afecta las lecturas día a día que ya tengas guardadas.</div>
     <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin:10px 0;">
       <div>
-        <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">Lectura Anterior (kWh)</label>
-        <input type="number" step="0.01" id="simpleLectIniInput" value="${iniVal}" placeholder="Ej: 12688" style="width:140px;">
-      </div>
-      <div>
         <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">Lectura Actual (kWh)</label>
         <input type="number" step="0.01" id="simpleLectFinInput" value="${finVal}" placeholder="Ej: 13570" style="width:140px;">
+      </div>
+      <div>
+        <label style="font-size:.75rem; color:var(--sub); display:block; margin-bottom:3px;">Lectura Anterior (kWh)</label>
+        <input type="number" step="0.01" id="simpleLectIniInput" value="${iniVal}" placeholder="Ej: 12688" style="width:140px;">
       </div>
       <button id="calcularSimpleBtn" style="width:auto; padding:8px 14px;">Calcular valor a pagar</button>
       ${tieneSimple ? `<button id="borrarSimpleBtn" style="width:auto; padding:8px 14px; background:var(--card2); color:var(--danger); border:1px solid var(--border);">🗑️ Borrar estos datos</button>` : ""}
