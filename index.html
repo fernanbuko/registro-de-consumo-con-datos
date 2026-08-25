@@ -3892,8 +3892,10 @@ async function monthHTML(year, mes){
         <h2 style="margin:0;">${mesLabel(mes)} ${year} ${hist ? `<span class="badge">Periodo real: ${fmtDate(periodo.desde)} a ${fmtDate(periodo.hasta)}</span>` : `<span class="badge">Periodo estimado: ${fmtDate(periodo.desde)} a ${fmtDate(periodo.hasta)}</span>`}</h2>
         <button id="nextMesBtn" title="${LANG==='en'?'Next month':'Mes siguiente'}" style="width:auto; padding:4px 10px; font-size:1rem; background:var(--card2); color:var(--text); border:1px solid var(--border);">›</button>
       </div>
-      <button id="clearMonthBtn" style="width:auto; padding:6px 12px; font-size:.72rem; background:var(--card2); color:var(--danger); border:1px solid var(--border);">${t('borrar_mes')}</button>
-      ${papeleraActual ? `<button id="deshacerBorradoBtn" title="${papeleraActual.tipo==='año' ? `Deshacer el borrado del año ${papeleraActual.year}` : `Deshacer el borrado de ${mesLabel(papeleraActual.mes)} ${papeleraActual.year}`}" style="width:auto; padding:6px 12px; font-size:.72rem; background:var(--card2); color:var(--ok); border:1px solid var(--ok);">↩️ Deshacer último borrado</button>` : ""}
+      <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
+        <button id="clearMonthBtn" style="width:auto; padding:6px 12px; font-size:.72rem; background:var(--card2); color:var(--danger); border:1px solid var(--border);">${t('borrar_mes')}</button>
+        ${papeleraActual ? `<button id="deshacerBorradoBtn" title="${papeleraActual.tipo==='año' ? `Deshacer el borrado del año ${papeleraActual.year}` : `Deshacer el borrado de ${mesLabel(papeleraActual.mes)} ${papeleraActual.year}`}" style="width:auto; padding:6px 12px; font-size:.72rem; background:var(--card2); color:var(--ok); border:1px solid var(--ok);">↩️ Deshacer último borrado</button>` : ""}
+      </div>
     </div>
     <div id="faltaHoyBanner">${s.faltaHoyHTML}</div>
     ${!hist ? `
