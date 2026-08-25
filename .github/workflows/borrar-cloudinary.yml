@@ -1,0 +1,33 @@
+name: Borrar archivos eliminados en Cloudinary
+
+on:
+  schedule:
+    # Cada 30 minutos. GitHub no garantiza el minuto exacto, pero para
+    # esta tarea (limpiar archivos ya eliminados en la app) no hace falta
+    # que sea puntual al segundo.
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {} # permite ejecutarlo a mano desde la pestaña Actions, para probar
+
+jobs:
+  borrar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Instalar dependencias
+        run: npm install firebase-admin
+        working-directory: robot
+
+      - name: Ejecutar el borrado pendiente en Cloudinary
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+        run: node borrar-cloudinary.js
+        working-directory: robot
