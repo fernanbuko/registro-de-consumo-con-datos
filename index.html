@@ -1247,7 +1247,7 @@ async function borrarDatosDePerfil(id){
       claves.push(`lectura_simple:${id}:${year}:${mes}`);
     }
   }
-  claves.push(`years:${id}`, `future_overrides:${id}`, `es_tercera_edad:${id}`, `ciudad:${id}`, `bomberos_manual:${id}`);
+  claves.push(`years:${id}`, `future_overrides:${id}`, `es_tercera_edad:${id}`, `ciudad:${id}`, `bomberos_manual:${id}`, `papelera:${id}`);
   await storageDeleteMuchos(claves);
 }
 
@@ -1688,6 +1688,54 @@ async function loadLecturaSimple(year, mes){
 }
 async function saveLecturaSimple(year, mes, obj){
   await storageSet(`lectura_simple:${PERFIL_ACTIVO}:${year}:${mes}`, JSON.stringify(obj));
+}
+
+// ---- Papelera de "Deshacer": antes de borrar un mes o un año completo, se guarda aquí
+// una copia de todo lo que se va a borrar. Así, si te equivocas al presionar "Borrar" (y
+// no tenías un respaldo hecho), puedes recuperarlo con el botón "↩️ Deshacer último
+// borrado" que aparece junto al botón de borrar mes, dentro de cualquier mes. Solo
+// guarda el ÚLTIMO borrado (un solo "nivel" de deshacer): si borras otra cosa después,
+// ese borrado anterior ya no se puede recuperar.
+async function loadPapelera(){
+  const v = await storageGet(`papelera:${PERFIL_ACTIVO}`);
+  return v ? JSON.parse(v) : null;
+}
+async function savePapelera(obj){
+  await storageSet(`papelera:${PERFIL_ACTIVO}`, JSON.stringify(obj));
+}
+async function clearPapelera(){
+  await storageDelete(`papelera:${PERFIL_ACTIVO}`);
+}
+async function restaurarPapelera(){
+  const p = await loadPapelera();
+  if(!p) return;
+  if(p.tipo === 'mes'){
+    const d = p.datos;
+    await saveEntries(p.year, p.mes, d.entries);
+    await saveFacturaManual(p.year, p.mes, d.manual);
+    await saveSubsidioExtra(p.year, p.mes, d.subsidioExtra);
+    await saveMeta(p.year, p.mes, d.meta);
+    await saveLecturaSimple(p.year, p.mes, d.lecturaSimple);
+    currentYear = p.year; currentTab = p.mes;
+  } else if(p.tipo === 'año'){
+    for(const mes of MESES){
+      const d = p.datos[mes];
+      if(!d) continue;
+      await saveEntries(p.year, mes, d.entries);
+      await saveFacturaManual(p.year, mes, d.manual);
+      await saveFacturaFoto(p.year, mes, d.facturaFoto);
+      await saveSubsidioExtra(p.year, mes, d.subsidioExtra);
+      await saveMeta(p.year, mes, d.meta);
+      await saveLecturaSimple(p.year, mes, d.lecturaSimple);
+    }
+    Object.keys(p.overrides || {}).forEach(k => { FUTURE_OVERRIDES[k] = p.overrides[k]; });
+    await saveOverrides();
+    if(!YEARS.includes(p.year)){ YEARS.push(p.year); YEARS.sort((a,b)=>a-b); await saveYears(); }
+    buildFutureRanges();
+    currentYear = p.year; currentTab = "Resumen Anual";
+  }
+  await clearPapelera();
+  renderYearTabs(); renderSpecialTabs(); renderTabs(); renderContent();
 }
 
 // ---- Respaldo: Exportar / Importar JSON (datos exactos, reimportables)
@@ -2455,7 +2503,22 @@ function renderYearTabs(){
 }
 
 async function deleteYear(year){
-  if(!(await confirmarModal(`¿Borrar todo el año ${year}? Se perderán todas las lecturas ingresadas en sus 12 meses. Esta acción no se puede deshacer.`, {peligroso:true}))) return;
+  if(!(await confirmarModal(`¿Borrar todo el año ${year}? Se perderán todas las lecturas ingresadas en sus 12 meses. Vas a poder deshacerlo entrando a cualquier mes y presionando "↩️ Deshacer último borrado" (junto al botón de borrar mes), pero solo hasta que borres otra cosa.`, {peligroso:true}))) return;
+  const datosPorMes = {};
+  for(const mes of MESES){
+    datosPorMes[mes] = {
+      entries: await loadEntries(year, mes),
+      manual: await loadFacturaManual(year, mes),
+      facturaFoto: await loadFacturaFoto(year, mes),
+      subsidioExtra: await loadSubsidioExtra(year, mes),
+      meta: await loadMeta(year, mes),
+      lecturaSimple: await loadLecturaSimple(year, mes)
+    };
+  }
+  const overridesSnapshot = {};
+  MESES.forEach(mes => { const k = `${year}:${mes}`; if(FUTURE_OVERRIDES[k]) overridesSnapshot[k] = FUTURE_OVERRIDES[k]; });
+  await savePapelera({tipo:'año', year, fecha: Date.now(), datos: datosPorMes, overrides: overridesSnapshot});
+
   const claves = [];
   for(const mes of MESES){
     claves.push(`lecturas:${PERFIL_ACTIVO}:${year}:${mes}`);
@@ -3790,6 +3853,7 @@ function attachStatsCardEvents(year, mes){
 async function monthHTML(year, mes){
   const s = await buildStatsSections(year, mes);
   const {c, hist, manual, subsidioExtra, meta, analisis} = s;
+  const papeleraActual = await loadPapelera();
   let daysHTML = "";
   c.rows.forEach(r=>{
     const val = r.lectura!==null ? r.lectura : "";
@@ -3829,6 +3893,7 @@ async function monthHTML(year, mes){
         <button id="nextMesBtn" title="${LANG==='en'?'Next month':'Mes siguiente'}" style="width:auto; padding:4px 10px; font-size:1rem; background:var(--card2); color:var(--text); border:1px solid var(--border);">›</button>
       </div>
       <button id="clearMonthBtn" style="width:auto; padding:6px 12px; font-size:.72rem; background:var(--card2); color:var(--danger); border:1px solid var(--border);">${t('borrar_mes')}</button>
+      ${papeleraActual ? `<button id="deshacerBorradoBtn" title="${papeleraActual.tipo==='año' ? `Deshacer el borrado del año ${papeleraActual.year}` : `Deshacer el borrado de ${mesLabel(papeleraActual.mes)} ${papeleraActual.year}`}" style="width:auto; padding:6px 12px; font-size:.72rem; background:var(--card2); color:var(--ok); border:1px solid var(--ok);">↩️ Deshacer último borrado</button>` : ""}
     </div>
     <div id="faltaHoyBanner">${s.faltaHoyHTML}</div>
     ${!hist ? `
@@ -4055,13 +4120,33 @@ function attachMonthEvents(year, mes){
   const clearBtn = document.getElementById('clearMonthBtn');
   if(clearBtn){
     clearBtn.addEventListener('click', async ()=>{
-      if(!(await confirmarModal(`¿Borrar todas las lecturas ingresadas en ${mesLabel(mes)} ${year}? Esta acción no se puede deshacer.`, {peligroso:true}))) return;
+      if(!(await confirmarModal(`¿Borrar todas las lecturas ingresadas en ${mesLabel(mes)} ${year}? Vas a poder deshacerlo con el botón "↩️ Deshacer último borrado" que aparece junto a este botón, pero solo hasta que borres otra cosa.`, {peligroso:true}))) return;
+      await savePapelera({
+        tipo: 'mes', year, mes, fecha: Date.now(),
+        datos: {
+          entries: await loadEntries(year, mes),
+          manual: await loadFacturaManual(year, mes),
+          subsidioExtra: await loadSubsidioExtra(year, mes),
+          meta: await loadMeta(year, mes),
+          lecturaSimple: await loadLecturaSimple(year, mes)
+        }
+      });
       await storageDelete(`lecturas:${PERFIL_ACTIVO}:${year}:${mes}`);
       await storageDelete(`factura_manual:${PERFIL_ACTIVO}:${year}:${mes}`);
       await storageDelete(`subsidio_extra:${PERFIL_ACTIVO}:${year}:${mes}`);
       await storageDelete(`meta_ahorro:${PERFIL_ACTIVO}:${year}:${mes}`);
       await storageDelete(`lectura_simple:${PERFIL_ACTIVO}:${year}:${mes}`);
       renderContent();
+    });
+  }
+  const deshacerBorradoBtn = document.getElementById('deshacerBorradoBtn');
+  if(deshacerBorradoBtn){
+    deshacerBorradoBtn.addEventListener('click', async ()=>{
+      const p = await loadPapelera();
+      if(!p) return;
+      const desc = p.tipo === 'año' ? `el año ${p.year}` : `${mesLabel(p.mes)} ${p.year}`;
+      if(!(await confirmarModal(`¿Deshacer el borrado de ${desc}? Se van a restaurar las lecturas, facturas y demás datos que tenía antes de borrarse.`))) return;
+      await restaurarPapelera();
     });
   }
   const ajustarBtn = document.getElementById('ajustarDiasBtn');
