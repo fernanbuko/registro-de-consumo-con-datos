@@ -3397,11 +3397,13 @@ async function resumenHTML(year){
   // siguiente) — con cuenta en la nube (Firestore), cada consulta es un viaje de red,
   // así que 12 meses × varias consultas se sentía como un retraso notable al abrir esta
   // pantalla. Ahora se piden todas en paralelo de una vez.
-  const [todosC, todosSubsidio, todosManual] = await Promise.all([
+  const [todosC, todosSubsidio, todosManual, todosPago] = await Promise.all([
     Promise.all(MESES.map(mes => computeMonth(year, mes))),
     Promise.all(MESES.map(mes => loadSubsidioExtra(year, mes))),
-    Promise.all(MESES.map(mes => loadFacturaManual(year, mes)))
+    Promise.all(MESES.map(mes => loadFacturaManual(year, mes))),
+    Promise.all(MESES.map(mes => loadPago(year, mes)))
   ]);
+  const pagosPendientes = []; // {mes, limitePago, vencido} — meses con periodo terminado y sin marcar como pagados
   // Un mes cuenta como "con factura real" si es uno de los 6 históricos (Ene-Jun con
   // factura ya cargada de fábrica) O si le ingresaste tú mismo una factura real manual
   // (Ajustes → Factura Manual) — antes esto solo miraba los históricos, así que un mes
@@ -3426,6 +3428,13 @@ async function resumenHTML(year){
     totalDias += dias;
     const desde = c.rows[0]?.fecha;
     const hasta = c.rows[c.rows.length-1]?.fecha;
+    if(hasta && todayISO() > hasta){
+      const pago = todosPago[mi];
+      if(!pago.pagado){
+        const limitePago = fechaLimitePago(hasta);
+        pagosPendientes.push({mes, limitePago, vencido: todayISO() > limitePago});
+      }
+    }
     const subsidioExtra = todosSubsidio[mi];
     const consumoReal = c.hist ? DATA[mes].consumo : c.consumoIngresado;
     const simSiempre = consumoReal > 0 ? simulador(consumoReal, subsidioExtra, mes) : null;
@@ -3473,6 +3482,28 @@ async function resumenHTML(year){
     </tr>`;
   }
   const diasPendientesHTML = await buildDiasPendientesCard();
+  const hayVencidos = pagosPendientes.some(p => p.vencido);
+  const pagosCardHTML = `
+  <div class="card">
+    <h2>💰 Pago de Facturas — ${year}</h2>
+    ${pagosPendientes.length === 0 ? `
+    <div class="note">✅ Estás al día — no hay ningún mes con el periodo terminado y sin marcar como pagado.</div>
+    ` : `
+    <div class="note" style="margin-bottom:10px; ${hayVencidos ? "color:var(--danger);" : ""}">${hayVencidos ? "⚠️ Tienes pago(s) vencido(s):" : "⏳ Tienes pago(s) pendiente(s) por confirmar:"}</div>
+    <table>
+      <tr><th>Mes</th><th>Vence</th><th>Estado</th><th></th></tr>
+      ${pagosPendientes.map(p => `
+      <tr>
+        <td>${mesLabel(p.mes)}</td>
+        <td>${fmtDate(p.limitePago)}</td>
+        <td>${p.vencido ? `<span style="color:var(--danger);">⚠️ Vencido</span>` : `⏳ Pendiente`}</td>
+        <td><button onclick="irAMesDesdeResumen(${year}, '${p.mes}')" style="width:auto; padding:5px 10px; font-size:.78rem;">Ir al mes</button></td>
+      </tr>
+      `).join("")}
+    </table>
+    `}
+  </div>
+  `;
   return `
   <div class="card">
     <h2>${LANG==='en'?'Client Info':'Ficha del Cliente'}</h2>
@@ -3484,6 +3515,7 @@ async function resumenHTML(year){
     ${PERFILES.length > 1 ? `<div class="note" style="margin-top:8px;">${LANG==='en'?'Edit or switch profiles in Settings.':'Edita o cambia de perfil desde Ajustes.'}</div>` : ""}
   </div>
   ${diasPendientesHTML}
+  ${pagosCardHTML}
   <div class="card">
     <h2>Meses Facturados — ${year}</h2>
     <div class="kv"><span>Meses con factura real</span><span class="v blue">${facturados.length ? facturados.join(", ") : "Ninguno todavía"}</span></div>
