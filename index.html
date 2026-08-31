@@ -1245,6 +1245,7 @@ async function borrarDatosDePerfil(id){
       claves.push(`subsidio_extra:${id}:${year}:${mes}`);
       claves.push(`meta_ahorro:${id}:${year}:${mes}`);
       claves.push(`lectura_simple:${id}:${year}:${mes}`);
+      claves.push(`pago:${id}:${year}:${mes}`);
     }
   }
   claves.push(`years:${id}`, `future_overrides:${id}`, `es_tercera_edad:${id}`, `ciudad:${id}`, `bomberos_manual:${id}`, `papelera:${id}`);
@@ -1720,6 +1721,25 @@ async function saveLecturaSimple(year, mes, obj){
   await storageSet(`lectura_simple:${PERFIL_ACTIVO}:${year}:${mes}`, JSON.stringify(obj));
 }
 
+// ---- Pago de la factura: una vez que termina el periodo de un mes (la fecha de
+// corte ya pasó), la app pregunta si ya se pagó la luz. El plazo máximo para pagar se
+// asume el día 5 del mes siguiente al corte (ajustable si tu distribuidora usa otra
+// fecha).
+async function loadPago(year, mes){
+  const v = await storageGet(`pago:${PERFIL_ACTIVO}:${year}:${mes}`);
+  return v ? JSON.parse(v) : {pagado:false, fecha:null};
+}
+async function savePago(year, mes, obj){
+  await storageSet(`pago:${PERFIL_ACTIVO}:${year}:${mes}`, JSON.stringify(obj));
+}
+function fechaLimitePago(hasta){
+  const d = new Date(hasta+"T00:00:00");
+  let mesNum = d.getMonth() + 2; // mes siguiente, en base 1 (getMonth() es base 0)
+  let anio = d.getFullYear();
+  if(mesNum > 12){ mesNum -= 12; anio += 1; }
+  return `${anio}-${String(mesNum).padStart(2,'0')}-05`;
+}
+
 // ---- Papelera de "Deshacer": antes de borrar un mes o un año completo, se guarda aquí
 // una copia de todo lo que se va a borrar. Así, si te equivocas al presionar "Borrar" (y
 // no tenías un respaldo hecho), puedes recuperarlo con el botón "↩️ Deshacer último
@@ -1746,6 +1766,7 @@ async function restaurarPapelera(){
     await saveSubsidioExtra(p.year, p.mes, d.subsidioExtra);
     await saveMeta(p.year, p.mes, d.meta);
     await saveLecturaSimple(p.year, p.mes, d.lecturaSimple);
+    if(d.pago) await savePago(p.year, p.mes, d.pago);
     currentYear = p.year; currentTab = p.mes;
   } else if(p.tipo === 'año'){
     for(const mes of MESES){
@@ -1757,6 +1778,7 @@ async function restaurarPapelera(){
       await saveSubsidioExtra(p.year, mes, d.subsidioExtra);
       await saveMeta(p.year, mes, d.meta);
       await saveLecturaSimple(p.year, mes, d.lecturaSimple);
+      if(d.pago) await savePago(p.year, mes, d.pago);
     }
     Object.keys(p.overrides || {}).forEach(k => { FUTURE_OVERRIDES[k] = p.overrides[k]; });
     await saveOverrides();
@@ -2542,7 +2564,8 @@ async function deleteYear(year){
       facturaFoto: await loadFacturaFoto(year, mes),
       subsidioExtra: await loadSubsidioExtra(year, mes),
       meta: await loadMeta(year, mes),
-      lecturaSimple: await loadLecturaSimple(year, mes)
+      lecturaSimple: await loadLecturaSimple(year, mes),
+      pago: await loadPago(year, mes)
     };
   }
   const overridesSnapshot = {};
@@ -2557,6 +2580,7 @@ async function deleteYear(year){
     claves.push(`subsidio_extra:${PERFIL_ACTIVO}:${year}:${mes}`);
     claves.push(`meta_ahorro:${PERFIL_ACTIVO}:${year}:${mes}`);
     claves.push(`lectura_simple:${PERFIL_ACTIVO}:${year}:${mes}`);
+    claves.push(`pago:${PERFIL_ACTIVO}:${year}:${mes}`);
     delete FUTURE_OVERRIDES[`${year}:${mes}`];
   }
   await storageDeleteMuchos(claves);
@@ -3906,6 +3930,31 @@ async function monthHTML(year, mes){
   const periodo = hist ? {desde:DATA[mes].desde, hasta:DATA[mes].hasta} : cycleRange(year, mes);
   const overrideKey = `${year}:${mes}`;
   const tieneAjuste = !hist && !!FUTURE_OVERRIDES[overrideKey];
+
+  // Pago de la factura: solo tiene sentido preguntar una vez que el periodo de este mes
+  // ya terminó (la fecha de corte ya pasó) — antes de eso no hay factura que pagar
+  // todavía. El plazo máximo asumido es el día 5 del mes siguiente al corte.
+  const yaTerminoPeriodo = todayISO() > periodo.hasta;
+  let pagoHTML = "";
+  if(yaTerminoPeriodo){
+    const pago = await loadPago(year, mes);
+    const limitePago = fechaLimitePago(periodo.hasta);
+    const vencido = !pago.pagado && todayISO() > limitePago;
+    pagoHTML = `
+    <div class="card">
+      <h2>💰 Pago de la Factura</h2>
+      <div class="note" style="margin-top:0;">El periodo de este mes terminó el ${fmtDate(periodo.hasta)}. La fecha máxima para pagar la luz es el ${fmtDate(limitePago)}.</div>
+      ${pago.pagado ? `
+      <div class="estado ok">✅ Ya pagaste la luz de este mes${pago.fecha ? ` (marcado el ${fmtDate(pago.fecha)})` : ""}.</div>
+      <button id="marcarNoPagadoBtn" style="margin-top:10px; width:auto; padding:6px 12px; font-size:.78rem; background:var(--card2); color:var(--text); border:1px solid var(--border);">Deshacer (marcar como no pagado)</button>
+      ` : `
+      <div class="estado pend" style="${vencido ? "color:var(--danger); background:rgba(240,113,111,.15);" : ""}">${vencido ? `⚠️ Vencido — el plazo para pagar era el ${fmtDate(limitePago)}.` : `⏳ ¿Ya pagaste la luz de este mes? Vence el ${fmtDate(limitePago)}.`}</div>
+      <button id="marcarPagadoBtn" style="margin-top:10px; width:auto; padding:8px 14px;">✅ Ya pagué la luz de este mes</button>
+      `}
+    </div>
+    `;
+  }
+
   return `
   <div class="card">
     <h2 style="margin-bottom:6px;">${LANG==='en'?'Client Info':'Ficha del Cliente'}</h2>
@@ -3928,6 +3977,9 @@ async function monthHTML(year, mes){
       </div>
     </div>
     <div id="faltaHoyBanner">${s.faltaHoyHTML}</div>
+  </div>
+  ${pagoHTML}
+  <div class="card">
     ${!hist ? `
     <div class="card" style="margin-top:14px; background:var(--card2);">
       <h2 style="font-size:.92rem;">⚡ Modo Simple (lectura anterior y actual)</h2>
@@ -4160,7 +4212,8 @@ function attachMonthEvents(year, mes){
           manual: await loadFacturaManual(year, mes),
           subsidioExtra: await loadSubsidioExtra(year, mes),
           meta: await loadMeta(year, mes),
-          lecturaSimple: await loadLecturaSimple(year, mes)
+          lecturaSimple: await loadLecturaSimple(year, mes),
+          pago: await loadPago(year, mes)
         }
       });
       await storageDelete(`lecturas:${PERFIL_ACTIVO}:${year}:${mes}`);
@@ -4168,6 +4221,7 @@ function attachMonthEvents(year, mes){
       await storageDelete(`subsidio_extra:${PERFIL_ACTIVO}:${year}:${mes}`);
       await storageDelete(`meta_ahorro:${PERFIL_ACTIVO}:${year}:${mes}`);
       await storageDelete(`lectura_simple:${PERFIL_ACTIVO}:${year}:${mes}`);
+      await storageDelete(`pago:${PERFIL_ACTIVO}:${year}:${mes}`);
       renderContent();
     });
   }
@@ -4179,6 +4233,20 @@ function attachMonthEvents(year, mes){
       const desc = p.tipo === 'año' ? `el año ${p.year}` : `${mesLabel(p.mes)} ${p.year}`;
       if(!(await confirmarModal(`¿Deshacer el borrado de ${desc}? Se van a restaurar las lecturas, facturas y demás datos que tenía antes de borrarse.`))) return;
       await restaurarPapelera();
+    });
+  }
+  const marcarPagadoBtn = document.getElementById('marcarPagadoBtn');
+  if(marcarPagadoBtn){
+    marcarPagadoBtn.addEventListener('click', async ()=>{
+      await savePago(year, mes, {pagado:true, fecha: todayISO()});
+      renderContent();
+    });
+  }
+  const marcarNoPagadoBtn = document.getElementById('marcarNoPagadoBtn');
+  if(marcarNoPagadoBtn){
+    marcarNoPagadoBtn.addEventListener('click', async ()=>{
+      await savePago(year, mes, {pagado:false, fecha:null});
+      renderContent();
     });
   }
   const ajustarBtn = document.getElementById('ajustarDiasBtn');
