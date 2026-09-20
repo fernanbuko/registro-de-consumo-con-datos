@@ -3246,7 +3246,7 @@ async function buildDiasPendientesCard(){
   if(hoyExtra) items.push(hoyExtra);
   if(items.length > 5){
     return `<div class="card">
-      <h2>${titulo} — ${mesLabel(mes)}</h2>
+      <h2>${titulo}</h2>
       <div class="note" style="color:#e8b169; margin-bottom:10px;">⚠️ ${LANG==='en' ? `You have ${items.length} days missing.` : `Te faltan ${items.length} días por ingresar.`}</div>
       <button onclick="irAMesDesdeResumen(${year}, '${mes}')" style="width:auto; padding:8px 14px;">${LANG==='en' ? `Go to ${mesLabel(mes)}` : `Ir a ${mesLabel(mes)}`}</button>
       ${hoyExtra ? `<button onclick="irAMesDesdeResumen(${hoyExtra.year}, '${hoyExtra.mes}')" style="width:auto; padding:8px 14px; margin-left:8px;">${LANG==='en' ? `Go to ${mesLabel(hoyExtra.mes)} (today)` : `Ir a ${mesLabel(hoyExtra.mes)} (hoy)`}</button>` : ""}
@@ -3266,7 +3266,7 @@ async function buildDiasPendientesCard(){
     </tr>`;
   });
   return `<div class="card" id="diasPendientesCard">
-    <h2>${titulo} — ${mesLabel(mes)}</h2>
+    <h2>${titulo}</h2>
     <div class="note" style="margin-bottom:10px;">${LANG==='en'
       ? `You're missing ${items.length} day(s). You can fill ${items.length>1?'them':'it'} in right here.`
       : `Te falta${items.length>1?'n':''} ingresar ${items.length} día${items.length>1?'s':''}. Puedes escribirlo${items.length>1?'s':''} aquí mismo.`}</div>
