@@ -3195,26 +3195,29 @@ function irAMesDesdeResumen(year, mes){
   navegarA(mes, year);
 }
 
-// Antes esto solo revisaba el mes "activo" (el que contiene hoy) y se detenía ahí — así
-// que en cuanto el corte de un mes pasaba y arrancaba el siguiente, los días sin llenar
-// que quedaron en el mes recién cerrado dejaban de aparecer aquí (aunque seguían sin
-// llenarse). Ahora revisa TODOS los meses cuyo periodo ya empezó (esté activo o ya
-// cerrado), para que ningún día pendiente se quede sin avisar.
+// Revisa TODOS los meses cuyo periodo ya empezó (esté activo o ya cerrado) en busca de
+// días sin llenar — antes solo miraba el mes "activo" (el que contiene hoy), así que en
+// cuanto el corte de un mes pasaba y arrancaba el siguiente, los días sin llenar del mes
+// recién cerrado dejaban de detectarse aquí. Para no saturar con varios meses a la vez,
+// solo se MUESTRA el más cercano a hoy (el de periodo más reciente) que tenga días
+// pendientes.
 async function diasPendientesInfo(){
   const hoy = todayISO();
-  const encontrados = []; // {fecha, year, mes}
+  const porMes = []; // {year, mes, hasta, faltantes}
   for(const year of YEARS){
     for(const mes of MESES){
       const hist = (PERFIL_ACTIVO === 'default' && year === BASE_YEAR && !!DATA[mes]);
       const periodo = hist ? {desde: DATA[mes].desde, hasta: DATA[mes].hasta} : cycleRange(year, mes);
       if(periodo.desde > hoy) continue; // este periodo todavía no empieza
       const c = await computeMonth(year, mes);
-      c.rows.forEach(r => { if(r.fecha <= hoy && r.lectura === null) encontrados.push({fecha: r.fecha, year, mes}); });
+      const faltantes = c.rows.filter(r => r.fecha <= hoy && r.lectura === null).map(r => r.fecha);
+      if(faltantes.length > 0) porMes.push({year, mes, hasta: periodo.hasta, faltantes});
     }
   }
-  if(encontrados.length === 0) return null;
-  encontrados.sort((a,b) => a.fecha.localeCompare(b.fecha));
-  return {faltantes: encontrados};
+  if(porMes.length === 0) return null;
+  porMes.sort((a,b) => b.hasta.localeCompare(a.hasta)); // el de periodo más reciente primero
+  const {year, mes, faltantes} = porMes[0];
+  return {year, mes, faltantes};
 }
 
 async function buildDiasPendientesCard(){
@@ -3227,27 +3230,18 @@ async function buildDiasPendientesCard(){
       <div class="note">${LANG==='en' ? "You're all caught up! No missing days to enter so far." : '¡Estás al día! No te falta ingresar ningún día.'}</div>
     </div>`;
   }
-  const {faltantes} = info;
+  const {year, mes, faltantes} = info;
   if(faltantes.length > 5){
-    const porMes = {};
-    faltantes.forEach(({year, mes})=>{
-      const key = `${year}:${mes}`;
-      porMes[key] = (porMes[key]||0) + 1;
-    });
-    const filasMes = Object.keys(porMes).map(key=>{
-      const [y, m] = key.split(':');
-      return `<div class="kv"><span>${mesLabel(m)} ${y}</span><span class="v">${porMes[key]} ${LANG==='en'?'day(s)':'día(s)'} — <button onclick="irAMesDesdeResumen(${y}, '${m}')" style="width:auto; padding:4px 10px; font-size:.74rem;">${LANG==='en'?'Go':'Ir'}</button></span></div>`;
-    }).join("");
     return `<div class="card">
-      <h2>${titulo}</h2>
-      <div class="note" style="color:#e8b169; margin-bottom:10px;">⚠️ ${LANG==='en' ? `You have ${faltantes.length} days missing, across ${Object.keys(porMes).length} month(s).` : `Te faltan ${faltantes.length} días por ingresar, repartidos en ${Object.keys(porMes).length} mes(es).`}</div>
-      ${filasMes}
+      <h2>${titulo} — ${mesLabel(mes)}</h2>
+      <div class="note" style="color:#e8b169; margin-bottom:10px;">⚠️ ${LANG==='en' ? `You have ${faltantes.length} days missing this month.` : `Te faltan ${faltantes.length} días por ingresar este mes.`}</div>
+      <button onclick="irAMesDesdeResumen(${year}, '${mes}')" style="width:auto; padding:8px 14px;">${LANG==='en' ? `Go to ${mesLabel(mes)}` : `Ir a ${mesLabel(mes)}`}</button>
     </div>`;
   }
   let filas = "";
-  faltantes.forEach(({fecha, year, mes})=>{
+  faltantes.forEach(fecha=>{
     filas += `<tr data-fecha="${fecha}">
-      <td>${fmtDate(fecha)} <span style="color:var(--sub); font-size:.85em;">${diaSemanaCorta(fecha)}</span> <span class="badge" style="margin-left:6px;">${mesLabel(mes)} ${year}</span></td>
+      <td>${fmtDate(fecha)} <span style="color:var(--sub); font-size:.85em;">${diaSemanaCorta(fecha)}</span></td>
       <td><input type="number" step="0.01" inputmode="decimal" enterkeyhint="next" class="pend-lect-input" data-fecha="${fecha}" data-year="${year}" data-mes="${mes}" placeholder="${LANG==='en'?'Reading':'Lectura'}"></td>
       <td><input type="time" class="pend-hora-input" data-fecha="${fecha}" data-year="${year}" data-mes="${mes}"></td>
       <td style="text-align:center;">
@@ -3257,10 +3251,10 @@ async function buildDiasPendientesCard(){
     </tr>`;
   });
   return `<div class="card" id="diasPendientesCard">
-    <h2>${titulo}</h2>
+    <h2>${titulo} — ${mesLabel(mes)}</h2>
     <div class="note" style="margin-bottom:10px;">${LANG==='en'
-      ? `You're missing ${faltantes.length} day(s). You can fill ${faltantes.length>1?'them':'it'} in right here.`
-      : `Te falta${faltantes.length>1?'n':''} ingresar ${faltantes.length} día${faltantes.length>1?'s':''}. Puedes escribirlo${faltantes.length>1?'s':''} aquí mismo.`}</div>
+      ? `You're missing ${faltantes.length} day(s). You can fill ${faltantes.length>1?'them':'it'} in right here — it'll update in ${mesLabel(mes)} automatically.`
+      : `Te falta${faltantes.length>1?'n':''} ingresar ${faltantes.length} día${faltantes.length>1?'s':''}. Puedes escribirlo${faltantes.length>1?'s':''} aquí mismo — se actualiza solo en ${mesLabel(mes)}.`}</div>
     <div class="daysbox"><div style="overflow-x:auto;"><table><tr><th>${LANG==='en'?'Date':'Fecha'}</th><th>${LANG==='en'?'Reading (kWh)':'Lectura (kWh)'}</th><th>${LANG==='en'?'Time':'Hora'}</th><th>${LANG==='en'?'Photo':'Foto'}</th></tr>${filas}</table></div></div>
   </div>`;
 }
