@@ -3203,7 +3203,7 @@ function irAMesDesdeResumen(year, mes){
 // pendientes.
 async function diasPendientesInfo(){
   const hoy = todayISO();
-  const porMes = []; // {year, mes, hasta, faltantes}
+  const porMes = []; // {year, mes, hasta, contieneHoy, faltantes}
   for(const year of YEARS){
     for(const mes of MESES){
       const hist = (PERFIL_ACTIVO === 'default' && year === BASE_YEAR && !!DATA[mes]);
@@ -3211,13 +3211,21 @@ async function diasPendientesInfo(){
       if(periodo.desde > hoy) continue; // este periodo todavía no empieza
       const c = await computeMonth(year, mes);
       const faltantes = c.rows.filter(r => r.fecha <= hoy && r.lectura === null).map(r => r.fecha);
-      if(faltantes.length > 0) porMes.push({year, mes, hasta: periodo.hasta, faltantes});
+      if(faltantes.length > 0) porMes.push({year, mes, hasta: periodo.hasta, contieneHoy: hoy <= periodo.hasta, faltantes});
     }
   }
   if(porMes.length === 0) return null;
   porMes.sort((a,b) => b.hasta.localeCompare(a.hasta)); // el de periodo más reciente primero
-  const {year, mes, faltantes} = porMes[0];
-  return {year, mes, faltantes};
+  const elegido = porMes[0];
+  // Si el mes que se va a mostrar no incluye el día de HOY, pero hoy sí está pendiente en
+  // otro mes (normalmente el que arrancó justo después del corte), se agrega aparte —
+  // así el día de hoy nunca queda "escondido" solo porque se está mostrando otro mes.
+  let hoyExtra = null;
+  if(!elegido.faltantes.includes(hoy)){
+    const otroConHoy = porMes.find(p => p.contieneHoy && p.faltantes.includes(hoy) && (p.year!==elegido.year || p.mes!==elegido.mes));
+    if(otroConHoy) hoyExtra = {fecha: hoy, year: otroConHoy.year, mes: otroConHoy.mes};
+  }
+  return {year: elegido.year, mes: elegido.mes, faltantes: elegido.faltantes, hoyExtra};
 }
 
 async function buildDiasPendientesCard(){
@@ -3230,31 +3238,38 @@ async function buildDiasPendientesCard(){
       <div class="note">${LANG==='en' ? "You're all caught up! No missing days to enter so far." : '¡Estás al día! No te falta ingresar ningún día.'}</div>
     </div>`;
   }
-  const {year, mes, faltantes} = info;
-  if(faltantes.length > 5){
+  const {year, mes, faltantes, hoyExtra} = info;
+  // La lista a mostrar: los días pendientes del mes elegido, más el día de hoy si está
+  // pendiente en OTRO mes (normalmente el que arrancó justo después del corte) — para que
+  // nunca quede escondido solo porque se muestra un mes distinto.
+  const items = faltantes.map(fecha => ({fecha, year, mes}));
+  if(hoyExtra) items.push(hoyExtra);
+  if(items.length > 5){
     return `<div class="card">
       <h2>${titulo} — ${mesLabel(mes)}</h2>
-      <div class="note" style="color:#e8b169; margin-bottom:10px;">⚠️ ${LANG==='en' ? `You have ${faltantes.length} days missing this month.` : `Te faltan ${faltantes.length} días por ingresar este mes.`}</div>
+      <div class="note" style="color:#e8b169; margin-bottom:10px;">⚠️ ${LANG==='en' ? `You have ${items.length} days missing.` : `Te faltan ${items.length} días por ingresar.`}</div>
       <button onclick="irAMesDesdeResumen(${year}, '${mes}')" style="width:auto; padding:8px 14px;">${LANG==='en' ? `Go to ${mesLabel(mes)}` : `Ir a ${mesLabel(mes)}`}</button>
+      ${hoyExtra ? `<button onclick="irAMesDesdeResumen(${hoyExtra.year}, '${hoyExtra.mes}')" style="width:auto; padding:8px 14px; margin-left:8px;">${LANG==='en' ? `Go to ${mesLabel(hoyExtra.mes)} (today)` : `Ir a ${mesLabel(hoyExtra.mes)} (hoy)`}</button>` : ""}
     </div>`;
   }
   let filas = "";
-  faltantes.forEach(fecha=>{
+  items.forEach(({fecha, year:y, mes:m})=>{
+    const esHoyExtra = hoyExtra && fecha===hoyExtra.fecha && m===hoyExtra.mes && y===hoyExtra.year;
     filas += `<tr data-fecha="${fecha}">
-      <td>${fmtDate(fecha)} <span style="color:var(--sub); font-size:.85em;">${diaSemanaCorta(fecha)}</span></td>
-      <td><input type="number" step="0.01" inputmode="decimal" enterkeyhint="next" class="pend-lect-input" data-fecha="${fecha}" data-year="${year}" data-mes="${mes}" placeholder="${LANG==='en'?'Reading':'Lectura'}"></td>
-      <td><input type="time" class="pend-hora-input" data-fecha="${fecha}" data-year="${year}" data-mes="${mes}"></td>
+      <td>${fmtDate(fecha)} <span style="color:var(--sub); font-size:.85em;">${diaSemanaCorta(fecha)}</span>${esHoyExtra ? ` <span class="badge">${mesLabel(m)} ${y}</span>` : ""}</td>
+      <td><input type="number" step="0.01" inputmode="decimal" enterkeyhint="next" class="pend-lect-input" data-fecha="${fecha}" data-year="${y}" data-mes="${m}" placeholder="${LANG==='en'?'Reading':'Lectura'}"></td>
+      <td><input type="time" class="pend-hora-input" data-fecha="${fecha}" data-year="${y}" data-mes="${m}"></td>
       <td style="text-align:center;">
-        <button class="pend-foto-btn" data-fecha="${fecha}" data-year="${year}" data-mes="${mes}" title="${LANG==='en'?'Attach a photo of the meter':'Adjuntar foto del medidor'}" style="width:auto; padding:4px 8px; background:none; border:1px solid var(--border); color:var(--sub); font-size:.95rem; border-radius:6px; cursor:pointer;">📷</button>
-        <input type="file" accept="image/*" capture="environment" class="pend-foto-input" data-fecha="${fecha}" data-year="${year}" data-mes="${mes}" style="display:none;">
+        <button class="pend-foto-btn" data-fecha="${fecha}" data-year="${y}" data-mes="${m}" title="${LANG==='en'?'Attach a photo of the meter':'Adjuntar foto del medidor'}" style="width:auto; padding:4px 8px; background:none; border:1px solid var(--border); color:var(--sub); font-size:.95rem; border-radius:6px; cursor:pointer;">📷</button>
+        <input type="file" accept="image/*" capture="environment" class="pend-foto-input" data-fecha="${fecha}" data-year="${y}" data-mes="${m}" style="display:none;">
       </td>
     </tr>`;
   });
   return `<div class="card" id="diasPendientesCard">
     <h2>${titulo} — ${mesLabel(mes)}</h2>
     <div class="note" style="margin-bottom:10px;">${LANG==='en'
-      ? `You're missing ${faltantes.length} day(s). You can fill ${faltantes.length>1?'them':'it'} in right here — it'll update in ${mesLabel(mes)} automatically.`
-      : `Te falta${faltantes.length>1?'n':''} ingresar ${faltantes.length} día${faltantes.length>1?'s':''}. Puedes escribirlo${faltantes.length>1?'s':''} aquí mismo — se actualiza solo en ${mesLabel(mes)}.`}</div>
+      ? `You're missing ${items.length} day(s). You can fill ${items.length>1?'them':'it'} in right here.`
+      : `Te falta${items.length>1?'n':''} ingresar ${items.length} día${items.length>1?'s':''}. Puedes escribirlo${items.length>1?'s':''} aquí mismo.`}</div>
     <div class="daysbox"><div style="overflow-x:auto;"><table><tr><th>${LANG==='en'?'Date':'Fecha'}</th><th>${LANG==='en'?'Reading (kWh)':'Lectura (kWh)'}</th><th>${LANG==='en'?'Time':'Hora'}</th><th>${LANG==='en'?'Photo':'Foto'}</th></tr>${filas}</table></div></div>
   </div>`;
 }
